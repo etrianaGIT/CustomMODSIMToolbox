@@ -1,0 +1,374 @@
+xyVersion 8.6
+numhydtables 0
+n_links 9
+n_nodes 10
+n_lags 5
+ExtManualStorageRightActive False
+ExtStorageRightActive False
+ExtWaterRightsActive False
+ExtLastFillRentActive False
+NonstorageNodeSize 100
+DemandNodeSize 100
+ReservoirNodeSize 100
+LinkSize 100
+BackgroundImageLocation 
+BackgroundImageSize 0
+DefaultFlowUnits acre-ft/month
+DefaultStorageUnits acre-ft
+hydroCtrl
+ExtHydropowerActive False
+node
+name NonStorage
+nuid e567290d-803b-4f3d-9369-ce4cf906198f
+desc 
+num 1
+ntype 2
+out 1
+tsinflow
+units acre-ft/month
+01/01/1980 00:00:00	10
+05/01/1980 00:00:00	30
+08/01/1980 00:00:00	50
+10/01/1980 00:00:00	40
+11/01/1980 00:00:00	10
+pos
+0 166.0000
+1 315.0000
+labelpos
+0 166.0000
+1 323.5000
+select 0
+node
+name NonStorage1
+nuid bbb4be6c-1be9-48f0-afeb-8a9b36548e28
+desc 
+num 2
+ntype 2
+in 1
+out 2
+out 6
+pos
+0 335.0000
+1 315.0000
+labelpos
+0 335.0000
+1 323.5000
+select 0
+node
+name NonStorage2
+nuid ca365921-674d-461e-90e0-4a9fe62e71da
+desc 
+num 3
+ntype 2
+in 2
+out 3
+out 7
+pos
+0 475.0000
+1 316.0000
+labelpos
+0 475.0000
+1 324.5000
+select 0
+node
+name NonStorage3
+nuid 036fc1dd-18d7-4b06-b137-21ec15e62be3
+desc 
+num 4
+ntype 2
+in 3
+out 4
+out 8
+pos
+0 618.0000
+1 316.0000
+labelpos
+0 618.0000
+1 324.5000
+select 0
+node
+name NonStorage4
+nuid b6b4e8d6-8316-409b-bcff-de923decba79
+desc 
+num 5
+ntype 2
+in 4
+out 5
+out 9
+pos
+0 775.0000
+1 313.0000
+labelpos
+0 775.0000
+1 321.5000
+select 0
+node
+name Sink
+nuid 860ae290-1fb8-4d04-8176-6b403b189e5b
+desc 
+num 6
+ntype 4
+in 5
+pos
+0 922.0000
+1 309.0000
+labelpos
+0 922.0000
+1 317.5000
+select 0
+node
+name Demand
+nuid 23aacc86-3ad5-4295-afa2-35d9d91e344e
+desc 
+num 7
+ntype 3
+in 6
+pos
+0 397.5000
+1 390.5000
+labelpos
+0 397.5000
+1 399.0000
+select 0
+pcapUnits acre-ft/month
+tsdemand
+units acre-ft/month
+01/01/1980 00:00:00	40
+node
+name Demand1
+nuid 3846963c-1e05-4975-ba5c-7cfe8b46ad79
+desc 
+num 8
+ntype 3
+in 7
+pos
+0 540.5000
+1 218.5000
+labelpos
+0 540.5000
+1 227.0000
+select 0
+pcapUnits acre-ft/month
+tsdemand
+units acre-ft/month
+01/01/1980 00:00:00	30
+node
+name Demand2
+nuid d4f6b123-9ea1-461d-bf83-e7c3ca6b087e
+desc 
+num 9
+ntype 3
+in 8
+pos
+0 665.5000
+1 397.5000
+labelpos
+0 665.5000
+1 406.0000
+select 0
+pcapUnits acre-ft/month
+tsdemand
+units acre-ft/month
+01/01/1980 00:00:00	20
+node
+name Demand3
+nuid b524a4f7-bb00-44be-af02-09521f802dfa
+desc 
+num 10
+ntype 3
+in 9
+pos
+0 837.5000
+1 226.5000
+labelpos
+0 837.5000
+1 235.0000
+select 0
+pcapUnits acre-ft/month
+tsdemand
+units acre-ft/month
+01/01/1980 00:00:00	10
+link
+lname NonStorage_NonStorage1
+luid ba2b2731-4aee-409b-b916-15909798be91
+ldescription 
+lnum 1
+fromnum 1
+tonum 2
+select 0
+link
+lname NonStorage1_NonStorage2
+luid 72c3a343-758d-4437-bb11-6cc5ba814aed
+ldescription 
+lnum 2
+fromnum 2
+tonum 3
+select 0
+link
+lname NonStorage2_NonStorage3
+luid 050d5ab0-cc10-479f-bd07-bb662ff4d900
+ldescription 
+lnum 3
+fromnum 3
+tonum 4
+select 0
+link
+lname NonStorage3_NonStorage4
+luid 0fb40767-84d3-4ae9-a921-0a031937469f
+ldescription 
+lnum 4
+fromnum 4
+tonum 5
+select 0
+link
+lname NonStorage4_Sink
+luid d5ba13f0-de0a-4b77-833a-b549bcfbce4a
+ldescription 
+lnum 5
+fromnum 5
+tonum 6
+select 0
+link
+lname NonStorage1_Demand
+luid a7d88735-abce-4c46-8de9-5c4e4d4ab83b
+ldescription 
+lnum 6
+fromnum 2
+tonum 7
+lcost -70
+maxCap
+units acre-ft/month
+01/01/1980 00:00:00	2999999999
+measured
+units acre-ft/month
+01/01/1980 00:00:00	-999
+select 0
+lnkallow 40
+link
+lname NonStorage2_Demand1
+luid e1d47b6f-61ab-4e21-bef8-db28a144d97f
+ldescription 
+lnum 7
+fromnum 3
+tonum 8
+lcost -80
+maxCap
+units acre-ft/month
+01/01/1980 00:00:00	2999999999
+measured
+units acre-ft/month
+01/01/1980 00:00:00	-999
+select 0
+lnkallow 30
+link
+lname NonStorage3_Demand2
+luid a8f32463-e483-42be-ad3b-e7c791cdf738
+ldescription 
+lnum 8
+fromnum 4
+tonum 9
+lcost -90
+maxCap
+units acre-ft/month
+01/01/1980 00:00:00	2999999999
+measured
+units acre-ft/month
+01/01/1980 00:00:00	-999
+select 0
+lnkallow 20
+link
+lname NonStorage4_Demand3
+luid 9eedddbc-ab04-4145-97af-7e98de7322fb
+ldescription 
+lnum 9
+fromnum 5
+tonum 10
+lcost -100
+maxCap
+units acre-ft/month
+01/01/1980 00:00:00	2999999999
+measured
+units acre-ft/month
+01/01/1980 00:00:00	-999
+select 0
+lnkallow 10
+ially 1 # Explicit_Targets
+iplot 0
+iprd Monthly
+iut 0
+n_years 1
+rdim
+0 0
+1 0
+2 20480
+3 2700
+title ExampleRotation
+uselags 1
+maxit 100
+gw_cp 0.05
+flowth_cp 0.00005
+evap_cp 0.01
+infeasrestart 0
+relxacrul 0
+dataStartDate 01/01/1980 00:00:00
+dataEndDate 01/01/1983 00:00:00
+startingDate 01/01/1980 00:00:00
+endingDate 01/01/1983 00:00:00
+accrualDate 01/01/1980 00:00:00
+seasCapDate 01/01/1980 00:00:00
+accuracy 0
+defaultMaxCap 2999999999
+res_output 1
+dws_rel 1
+elev_end 1
+evp_loss 1
+evp_rate 1
+gwater 1
+head_avg 1
+hydra_Cap 1
+powr_avg 1
+powr_pk 1
+pump_in 1
+pump_out 1
+pwr_2nd 1
+seepage 1
+spills 1
+stor_beg 1
+stor_end 1
+stor_trg 1
+unreg_in 1
+ups_rel 1
+dem_output 1
+dem_sht 1
+demand 1
+gw_in 1
+surf_in 1
+acc_flow 1
+acc_output 1
+acrl 1
+stgl 1
+flo_flow 1
+flo_output 1
+loss 1
+natflow 1
+fromgwtono 1
+gw_output 1
+noTimeStepsInMemorygwinfiltra 1
+spcl_rpts 0
+part_flows 0
+ver7OutputFiles 0
+ver8MSDBOutputFiles 0
+SQLiteOutputFiles 1
+DeleteTempVer8OutputFiles 1
+noTimeStepsInMemory 12
+hydroStateOUT 1
+nonStorage_output 1
+l_MaxOUT 1
+l_MinOUT 1
+Flow_ThruOUT 1
+Rout_RetOUT 1
+InflowOUT 1
+nomaxmesg 0
+constsysst 0
+IsBackRoutingActive 0
+IsStorageAccountWithRouting 0
