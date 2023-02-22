@@ -4,15 +4,19 @@ using System.Linq;
 using System.Text;
 using Csu.Modsim.ModsimIO;
 using Csu.Modsim.ModsimModel;
-using DiversionRotation;
+using MODSIMModeling.DiversionRotation;
+using MODSIMModeling.EconomicModeling;
 
-namespace MainMODSIMRun
+namespace MODSIMModeling.MainMODSIMRun
 {
     class Program
     {
         public static Model myModel = new Model();
+		// declaring the plug-ins
 		public static DemRotation Demtool;
-		static void Main(string[] CmdArgs)
+        public static EconoModeling econoTool;
+
+        static void Main(string[] CmdArgs)
 		{
 			string FileName = CmdArgs[0];
 			myModel.OnMessage += OnMessage;
@@ -21,9 +25,12 @@ namespace MainMODSIMRun
 			XYFileReader.Read(myModel, FileName);
 
 			//Adding 'plug-ins'
-			Demtool = new DemRotation(ref myModel);
+			//Demtool = new DemRotation(ref myModel);
+            
+			econoTool = new EconoModeling(ref myModel);
+			econoTool.messageOutRun+= OnMessage;
 
-			Modsim.RunSolver(myModel);
+            Modsim.RunSolver(myModel);
 		}
 
 		private static void OnMessage(string message)
