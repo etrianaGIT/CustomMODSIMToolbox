@@ -12,20 +12,19 @@ using System.Threading.Tasks;
 
 namespace MODSIMModeling.EconomicModeling
 {
-    public delegate void ProcessMessage(string msg);  // delegate
-    public class EconoModeling
+    //public delegate void ProcessMessage(string msg);  // delegate
+    public class LinksBound
     {
         public Model m_Model = new Model();
 
         private Dictionary<string, CostData> linksCost;
         private string dbPath;
         private MyDBSqlite m_db;
-        private BoundsData m_boundsData;
-        private Dictionary<string, BoundsData> linksBounds;
+
 
         public event ProcessMessage messageOutRun;     //event
 
-        public EconoModeling(ref Model model, int riparianCost = -999)
+        public LinksBound(ref Model model, int riparianCost = -999)
         {
 
             model.Init += OnInitialize;
@@ -37,6 +36,7 @@ namespace MODSIMModeling.EconomicModeling
             model.End += OnFinished;
 
             m_Model = model;
+
         }
 
         private void OnMessageOut(string message)
@@ -57,16 +57,16 @@ namespace MODSIMModeling.EconomicModeling
 
         private void InitilizeVariables()
         {
-            dbPath = m_Model.fname.Replace(".xy", ".sqlite");
+            linksCost = new Dictionary<string, CostData>(); // links custom cost object
 
             m_db = new MyDBSqlite(dbPath);
             m_db.messageOut += OnMessageOut;
-                     
 
-            //Initialize Cost Data
-            linksCost = new Dictionary<string, CostData>(); // links custom cost object
+            dbPath = m_Model.fname.Replace(".xy", ".sqlite");
             if (File.Exists(dbPath))
             {
+
+                m_db.messageOut += OnMessageOut;
 
                 DataTable costInfo = m_db.GetTableFromDB("Select * FROM CostTableInfo", "CostTableInfo");
                 foreach (DataRow row in costInfo.Rows)
@@ -87,23 +87,6 @@ namespace MODSIMModeling.EconomicModeling
             else
                 messageOutRun("ERROR: Database with cost for economic modeling not found.");
 
-            //Initialize Link Bounds Data
-            linksBounds = new Dictionary<string, BoundsData>(); // links custom cost object
-            if (File.Exists(dbPath))
-            {
-
-                DataTable linkInfoTbl = m_db.GetTableFromDB("SELECT * FROM Features WHERE BoundsType IS NOT NULL AND BoundsType <> ''", "linkInfoTbl");
-                foreach (DataRow row in linkInfoTbl.Rows)
-                {
-                    BoundsData bd;
-                    bd = new BoundsData(row,m_Model.ScaleFactor);
-                    linksBounds.Add(bd.lName, bd);
-                }
-                messageOutRun($"Found {linksBounds.Count} links with capacity info.");
-
-            }
-            else
-                messageOutRun("ERROR: Database with features data for economic modeling not found.");
         }
 
         private void OnIterationTop()
@@ -113,7 +96,7 @@ namespace MODSIMModeling.EconomicModeling
 
         private void OnIterationBottom()
         {
-            //Set Cost as a function of flow
+            
             //Parallel.ForEach<string>(linksCost.Keys, lName =>
             foreach (string lName in linksCost.Keys) 
             {
@@ -123,15 +106,6 @@ namespace MODSIMModeling.EconomicModeling
             }
             //);
 
-
-            //Set link bounds
-            foreach (string lName in linksBounds.Keys)
-            {
-                BoundsData _bd = linksBounds[lName];
-                //This version uses the link name to get the bounds info - we could use the uid as well.
-                Link l = m_Model.FindLink(lName);
-                _bd.ProcessLinkBounds(ref m_db, ref l, m_Model.mInfo.CurrentBegOfPeriodDate);
-            }
         }
 
         private void OnIterationConverge()
