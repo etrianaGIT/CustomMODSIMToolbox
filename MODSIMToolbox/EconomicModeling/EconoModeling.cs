@@ -9,6 +9,7 @@ using System.IO;
 using System.Data;
 using MODSIMModeling.MODSIMUtils;
 using System.Threading.Tasks;
+using Csu.Modsim.NetworkUtils;
 
 namespace MODSIMModeling.EconomicModeling
 {
@@ -22,6 +23,7 @@ namespace MODSIMModeling.EconomicModeling
         private MyDBSqlite m_db;
         private BoundsData m_boundsData;
         private Dictionary<string, BoundsData> linksBounds;
+        private ModelOutputSupport modsimoutputsupport;
 
         public event ProcessMessage messageOutRun;     //event
 
@@ -53,6 +55,17 @@ namespace MODSIMModeling.EconomicModeling
         private void OnInitialize()
         {
             InitilizeVariables();
+
+            // Setup user output variable to display the cost.
+            modsimoutputsupport = m_Model.OutputSupportClass as ModelOutputSupport;
+            modsimoutputsupport.AddUserDefinedOutputVariable(m_Model, "Cost", true, false, "Cost");
+            modsimoutputsupport.AddCurrentUserLinkOutput += AddMyLinkOutput;
+
+        }
+
+        private void AddMyLinkOutput(Link link, DataRow row)
+        {
+            row["Cost"] = link.mlInfo.cost;
         }
 
         private void InitilizeVariables()
@@ -67,11 +80,27 @@ namespace MODSIMModeling.EconomicModeling
             linksCost = new Dictionary<string, CostData>(); // links custom cost object
             if (File.Exists(dbPath))
             {
-
+                int resCount = 0;
                 DataTable costInfo = m_db.GetTableFromDB("Select * FROM CostTableInfo", "CostTableInfo");
                 foreach (DataRow row in costInfo.Rows)
                 {
                     CostData cd;
+                    string lName = row["ObjName"].ToString();
+                    bool isRes = m_Model.NodeNameExists(lName,silent:true);
+                    if (isRes)
+                    {
+                        Node res = m_Model.FindNode(lName);
+                        //note: first link carries the min storage;
+                        Link lTrgt = res.mnInfo.balanceLinks.link;
+                        if (res.m.resBalance.incrPriorities.Length > 1)
+                        {
+                            //Assumes that a single layer is used in the reservoir
+                            lTrgt = res.mnInfo.balanceLinks.next.link;
+                        }
+                        lName = lTrgt.name + "_Trgt";
+                        lTrgt.name = lName;
+                        resCount += 1;
+                    }
                     if (row["Type"].ToString() == "Constant")
                         cd = new CostData(double.Parse(row["value"].ToString()));
                     else
@@ -79,9 +108,10 @@ namespace MODSIMModeling.EconomicModeling
                         cd = new CostData(int.Parse(row["pkid"].ToString()), row["Type"].ToString());
                         cd.SetDataBounds(m_db);
                     }
-                    linksCost.Add(row["ObjName"].ToString(), cd);
+                    linksCost.Add(lName, cd);
                 }
                 messageOutRun($"Found {costInfo.Rows.Count} links with cost info.");
+                messageOutRun($"\t and {resCount} reservoir nodes with cost info.");
 
             }
             else
@@ -127,10 +157,17 @@ namespace MODSIMModeling.EconomicModeling
             //Set link bounds
             foreach (string lName in linksBounds.Keys)
             {
+
                 BoundsData _bd = linksBounds[lName];
                 //This version uses the link name to get the bounds info - we could use the uid as well.
                 Link l = m_Model.FindLink(lName);
                 _bd.ProcessLinkBounds(ref m_db, ref l, m_Model.mInfo.CurrentBegOfPeriodDate);
+                //if (m_Model.mInfo.Iteration > 4)
+                //{
+                //    _bd.ProcessLinkBounds(ref m_db, ref l, m_Model.mInfo.CurrentBegOfPeriodDate);
+                //}
+                //else
+                //    l.mlInfo.lo = 0;
             }
         }
 

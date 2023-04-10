@@ -19,7 +19,6 @@ namespace MODSIMModeling.EconomicModeling
         public string layer;
         
         private double _scaleFactor;
-        private int initialTSYear = -1;
 
         public BoundsData(DataRow dRow, double scaleFactor) 
         {
@@ -40,7 +39,7 @@ namespace MODSIMModeling.EconomicModeling
             {
                 case string a when a.Contains("EQT"):
                     // code block
-                    //l.mlInfo.lo = l.mlInfo.hi;
+                    l.mlInfo.lo = l.mlInfo.hi;
                     break;
                 case string a when a.Contains("LBT"):
                     // code block
@@ -49,17 +48,17 @@ namespace MODSIMModeling.EconomicModeling
                                     WHERE TSTypeID = (SELECT TSTypeID FROM TSTypes
 				                                       WHERE MODSIMTSType = ""minVariable"" AND IsPattern = 0) 
 	                                    AND FeatureID = {featureID} AND TSDate = '{dbDate}'";
-                    //l.mlInfo.lo =(long) Math.Round(double.Parse(m_db.ExecuteScalar(sql).ToString())*_scaleFactor);
+                    l.mlInfo.lo =(long) Math.Round(double.Parse(m_db.ExecuteScalar(sql).ToString())*_scaleFactor);
                     break;
                 case string a when a.Contains("LBM"):
                     // code block
-                    if (initialTSYear == -1)
-                        initialTSYear = GetInitYear(ref m_db);
-                    dbDate = initialTSYear + "-" + currentBegOfPeriodDate.Month.ToString("00") + "-" + currentBegOfPeriodDate.Day.ToString("00");
+                    //if (initialTSYear == -1)
+                    //    initialTSYear = GetInitYear(ref m_db);
+                    dbDate =  "%-" + currentBegOfPeriodDate.Month.ToString("00") + "-" + currentBegOfPeriodDate.Day.ToString("00");
                     sql = $@"SELECT TSValue FROM Timeseries
                                     WHERE TSTypeID = (SELECT TSTypeID FROM TSTypes
 				                                       WHERE MODSIMTSType = ""minVariable"" AND IsPattern = 1) 
-	                                    AND FeatureID = {featureID} AND TSDate = '{dbDate}'";
+	                                    AND FeatureID = {featureID} AND TSDate LIKE '{dbDate}'";
                     l.mlInfo.lo = (long)Math.Round(double.Parse(m_db.ExecuteScalar(sql).ToString()) * _scaleFactor);
                     break;
                 default:

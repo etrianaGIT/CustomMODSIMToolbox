@@ -85,7 +85,6 @@
   <ItemGroup>
     <Compile Include="BoundsData.cs" />
     <Compile Include="CostData.cs" />
-    <Compile Include="LinkBounds.cs" />
     <Compile Include="EconoModeling.cs" />
     <Compile Include="MyDBSqlite.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

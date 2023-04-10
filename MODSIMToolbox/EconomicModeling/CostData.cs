@@ -35,7 +35,7 @@ namespace MODSIMModeling.EconomicModeling
             {
                 dataBounds = new Dictionary<int, Dictionary<string, double>>();
 
-                string sql = $@"SELECT pkid,month, Max(capacity) as Maxflow,Min(capacity) as Minflow, Max(cost) as MaxCost,Min(cost) as Mincost 
+                string sql = $@"SELECT pkid,month, Max(capacity) as Maxflow, cost as MaxCost 
                                 FROM CostData
                                 WHERE (pkid = {db_pkid})
                                 GROUP BY month";
@@ -45,10 +45,22 @@ namespace MODSIMModeling.EconomicModeling
                     int mon = int.Parse(dr["month"].ToString());
                     Dictionary<string, double> datas = new Dictionary<string, double>();
                     datas.Add("MaxFlow", double.Parse(dr["Maxflow"].ToString()));
-                    datas.Add("MinFlow", double.Parse(dr["Minflow"].ToString()));
                     datas.Add("MaxCost", double.Parse(dr["Maxcost"].ToString()));
-                    datas.Add("MinCost", double.Parse(dr["Mincost"].ToString()));
                     dataBounds.Add(mon, datas);
+                }
+
+
+                sql = $@"SELECT pkid,month, Min(capacity) as Minflow, cost as Mincost 
+                                FROM CostData
+                                WHERE (pkid = {db_pkid})
+                                GROUP BY month";
+                dt = m_db.GetTableFromDB(sql, "DataLimits");
+                foreach (DataRow dr in dt.Rows)
+                {
+                    int mon = int.Parse(dr["month"].ToString());
+                    Dictionary<string, double> datas = dataBounds[mon];
+                    datas.Add("MinFlow", double.Parse(dr["Minflow"].ToString()));
+                    datas.Add("MinCost", double.Parse(dr["Mincost"].ToString()));
                 }
             }
         }
