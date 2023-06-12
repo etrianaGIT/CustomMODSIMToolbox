@@ -30,6 +30,16 @@ namespace MODSIMModeling.EconomicModeling
             _scaleFactor = scaleFactor;
             
         }
+        public BoundsData(DataRow dRow, double scaleFactor, string reslinkName, string luid)
+        {
+            lName = reslinkName;// dRow["MOD_Name"].ToString();
+            _uID = luid;// dRow["uid"].ToString();
+            _type = dRow["BoundsType"].ToString();
+            featureID = int.Parse(dRow["FeatureID"].ToString());
+            layer = dRow["GroupingKey"].ToString();
+            _scaleFactor = scaleFactor;
+
+        }
 
         internal void ProcessLinkBounds(ref MyDBSqlite m_db, ref Link l, DateTime currentBegOfPeriodDate)
         {

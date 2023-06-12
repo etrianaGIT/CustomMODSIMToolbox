@@ -11,6 +11,7 @@ namespace MODSIMModeling.EconomicModeling
     internal class CostData
     {
         public Csu.Modsim.ModsimModel.ModsimUnits units;
+        public Csu.Modsim.ModsimModel.Link totFlowLink = null;
         private double value;
         //private DataTable valueTbl;
         private int db_pkid;
@@ -65,33 +66,34 @@ namespace MODSIMModeling.EconomicModeling
             }
         }
 
-        public long GetCostValue(ref MyDBSqlite m_db, DateTime dateTime,double flow)
+        public long GetCostValue(ref MyDBSqlite m_db, DateTime dateTime,double flow_kAF, ref bool converged)
         {
-            if (flow != prevFlow)
+            converged = converged && (prevFlow == flow_kAF);
+            if (flow_kAF != prevFlow)
             {
                 if (type == "MonthlyVar") //Is this needed here?
                 {
                     int mon = dateTime.Month;
-                    if (flow >= dataBounds[mon]["MaxFlow"])
+                    if (flow_kAF >= dataBounds[mon]["MaxFlow"])
                         value = dataBounds[mon]["MaxCost"];
                     else
                     {
-                        if (flow <= dataBounds[mon]["MinFlow"])
+                        if (flow_kAF <= dataBounds[mon]["MinFlow"])
                             value = dataBounds[mon]["MinCost"];
                         else
                         {
 
                             int _mon = dateTime.Month;
-                            string sql = $@"SELECT (cost1 + (({flow}-flow1)*(cost2-cost1)/(flow2-flow1))) as IntCost FROM (
+                            string sql = $@"SELECT (cost1 + (({flow_kAF}-flow1)*(cost2-cost1)/(flow2-flow1))) as IntCost FROM (
 		                            SELECT * FROM (
 			                            SELECT pkid,capacity as flow2,cost as cost2 FROM CostData
-			                            WHERE (pkid = {db_pkid} and month = {_mon} and capacity >= {flow})
+			                            WHERE (pkid = {db_pkid} and month = {_mon} and capacity >= {flow_kAF})
 			                            ORDER by capacity 
 			                            LIMIT 1)as a2 
 		                            JOIN (
 			                            SELECT * FROM (
 			                            SELECT pkid,capacity as flow1,cost as cost1  FROM CostData
-			                            WHERE (pkid = {db_pkid} and month = {_mon} and capacity < {flow})
+			                            WHERE (pkid = {db_pkid} and month = {_mon} and capacity < {flow_kAF})
 			                            ORDER by capacity DESC
 			                            LIMIT 1) 
 			                            ) as a1 ON a1.pkid = a2.pkid
@@ -101,9 +103,14 @@ namespace MODSIMModeling.EconomicModeling
                         }
                     }
                 }
-                prevFlow = flow;
+                prevFlow = flow_kAF;
             }
             return (long) Math.Round(value);
+        }
+
+        internal void ResetFlow()
+        {
+            prevFlow = -1;
         }
     }
 }
