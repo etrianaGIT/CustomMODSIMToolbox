@@ -5,13 +5,16 @@ using System.Text;
 using Csu.Modsim.ModsimIO;
 using Csu.Modsim.ModsimModel;
 using DiversionRotation;
+using RTI.CWR.MODSIM.WQModelingModule;
 
-namespace MainMODSIMRun
+namespace RTI.CWR.MODSIM.MainMODSIMRun
 {
     class Program
     {
         public static Model myModel = new Model();
 		public static DemRotation Demtool;
+		public static WQModeling wQModel;
+
 		static void Main(string[] CmdArgs)
 		{
 			string FileName = CmdArgs[0];
@@ -21,7 +24,8 @@ namespace MainMODSIMRun
 			XYFileReader.Read(myModel, FileName);
 
 			//Adding 'plug-ins'
-			Demtool = new DemRotation(ref myModel);
+			//Demtool = new DemRotation(ref myModel);
+			wQModel = new WQModeling(ref myModel);
 
 			Modsim.RunSolver(myModel);
 		}

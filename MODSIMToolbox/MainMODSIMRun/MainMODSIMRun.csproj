@@ -87,6 +87,10 @@
       <Project>{9b88fa18-50f2-472f-8ebd-0c0dbbfe2098}</Project>
       <Name>DiversionRotation</Name>
     </ProjectReference>
+    <ProjectReference Include="..\WQModelingModule\WQModelingModule.csproj">
+      <Project>{0a4c9303-dd09-4a11-ab45-554b4bb8c5cf}</Project>
+      <Name>WQModelingModule</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
