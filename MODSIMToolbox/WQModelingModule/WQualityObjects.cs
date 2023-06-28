@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using Csu.Modsim.ModsimModel;
 using Microsoft.VisualBasic;
 
 namespace RTI.CWR.MODSIM.WQModelingModule
@@ -60,7 +61,7 @@ namespace RTI.CWR.MODSIM.WQModelingModule
         public bool FTDAdjusted;
         public QualityNodeData()
         {
-            InflowConcentration = new TimeSeries(true);
+            InflowConcentration = new TimeSeries(TimeSeriesType.Undefined);
             InflowConcentration.MultiColumn = true;
             InflowConcentration.VariesByYear = true;
             var m_TSTable = new DataTable();
