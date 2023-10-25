@@ -4,7 +4,7 @@ n_links 6
 n_nodes 6
 n_lags 5
 ExtManualStorageRightActive False
-ExtStorageRightActive False
+ExtStorageRightActive True
 ExtWaterRightsActive False
 ExtLastFillRentActive False
 NonstorageNodeSize 100
@@ -95,6 +95,7 @@ effCurveName powerEff
 justTheName True
 resnext 2
 resprev 2
+resoutfl 2
 tstarget
 interpolate True
 units 10⁶m³
@@ -136,6 +137,7 @@ effCurveName powerEff_2
 justTheName True
 resnext 3
 resprev 3
+resoutfl 3
 tstarget
 units 10⁶m³
 01/02/1980 00:00:00	0
@@ -183,6 +185,7 @@ effCurveName powerEff_3
 justTheName True
 resnext 5
 resprev 5
+resoutfl 5
 tstarget
 units 10⁶m³
 01/02/1980 00:00:00	0
@@ -276,7 +279,7 @@ relxacrul 0
 dataStartDate 01/01/1980 00:00:00
 dataEndDate 01/01/1982 00:00:00
 startingDate 01/01/1980 00:00:00
-endingDate 01/01/1981 00:00:00
+endingDate 01/01/1982 00:00:00
 accrualDate 01/01/1980 00:00:00
 seasCapDate 01/01/1980 00:00:00
 accuracy 2

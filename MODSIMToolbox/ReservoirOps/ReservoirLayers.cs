@@ -100,9 +100,9 @@ namespace MODSIMModeling.ReservoirOps
             if(dr.Length>0)
             {
                 double upper_max = double.MaxValue;
-                if(dr[0]["NORhi_max"].ToString()!= "Infinity")
+                if(!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
                     upper_max= double.Parse(dr[0]["NORhi_max"].ToString());
-                double upper_min = dr[0]["NORhi_min"].ToString() != "-Infinity" ?dr[0].Field<double>("NORhi_min"):double.MinValue;
+                double upper_min = !dr[0]["NORhi_min"].ToString().Contains("Infinity") ?dr[0].Field<double>("NORhi_min"):double.MinValue;
                 double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString()); 
                 double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString()); 
                 double omega = 1.0 / 52.0;
@@ -149,13 +149,19 @@ namespace MODSIMModeling.ReservoirOps
                 if (res.m.resBypassL != null)
                     resInflow += res.m.resBypassL.mlInfo.flow;
                 if(res.m.resOutLink!=null)
-                    res.m.resOutLink.mlInfo.hi = (long) Math.Round((1D + GetMaxReleaseParameter(res.name)) * resInflow,0);
+                    res.m.resOutLink.mlInfo.hi = (long) Math.Round((1D + GetMaxReleaseParameter(res)) * resInflow,0);
             }
         }
 
-        private double GetMaxReleaseParameter(string name)
+        private double GetMaxReleaseParameter(Node res)
         {
-            return 0.2;
+            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+            double maxRelease = myModel.defaultMaxCap;
+            if (dr.Length > 0)
+            {
+                maxRelease = !dr[0]["Release_max"].ToString().Contains("Infinity") ? dr[0].Field<double>("Release_max"):maxRelease;                
+            }
+            return maxRelease;
         }
 
         private long GetResInflow(Node res)
