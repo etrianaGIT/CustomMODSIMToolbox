@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.OleDb;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Csu.Modsim.ModsimIO;
@@ -14,6 +16,8 @@ namespace MODSIMModeling.ReservoirOps
         public delegate void ProcessMessage(string msg);  // delegate
 
         public Model myModel;
+        private DataTable _DtParams;
+
         public event ProcessMessage messageOutRun;     //event
 
         public ReservoirLayers(ref Model m_Model, bool saveXYRun)
@@ -26,6 +30,10 @@ namespace MODSIMModeling.ReservoirOps
 			
 			myModel = m_Model;
 
+            //Read parameters in a datatable
+            _DtParams = ReadCsv("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
+            
+            //Process reservoir targets
 			SetReservvoirTargets();
 
             //Save changes to the XY (run)
@@ -49,7 +57,7 @@ namespace MODSIMModeling.ReservoirOps
                     int weekNumber = calendar.GetWeekOfYear(dtime, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
 
                     newdr[0] = dr["EndDate"].ToString();
-                    newdr[1] = GetMaxNormal(res.name, weekNumber) * (decimal) myModel.ScaleFactor;
+                    newdr[1] = GetMaxNormal(res, weekNumber) * myModel.ScaleFactor;
                     dt.Rows.Add(newdr); 
                 }
                 //Set the lower layer placeholder
@@ -74,8 +82,8 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
-                decimal minNormal = GetMinNormal(res.name, weekNumber);
-                decimal maxNormal = GetMaxNormal(res.name, weekNumber);
+                double minNormal = GetMinNormal(res, weekNumber);
+                double maxNormal = GetMaxNormal(res, weekNumber);
 
                 DataTable dt = res.m.adaTargetsM.dataTable;
                 
@@ -85,14 +93,51 @@ namespace MODSIMModeling.ReservoirOps
             }
         }
 
-        private decimal GetMaxNormal(string name, int weekNumber)
+        private double GetMaxNormal(Node res, int weekNumber)
         {
-            return weekNumber * 2 * 10;
+            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+            double maxNormal = res.m.max_volume;
+            if(dr.Length>0)
+            {
+                double upper_max = double.MaxValue;
+                if(dr[0]["NORhi_max"].ToString()!= "Infinity")
+                    upper_max= double.Parse(dr[0]["NORhi_max"].ToString());
+                double upper_min = dr[0]["NORhi_min"].ToString() != "-Infinity" ?dr[0].Field<double>("NORhi_min"):double.MinValue;
+                double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString()); 
+                double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString()); 
+                double omega = 1.0 / 52.0;
+                double upper_beta = double.Parse(dr[0]["NORhi_beta"].ToString());
+                maxNormal = Math.Min(upper_max,
+                                        Math.Max(upper_min,
+                                               upper_mu +
+                upper_alpha *  Math.Sin(2.0 *  Math.PI * omega * weekNumber) +
+                upper_beta *  Math.Cos(2.0 * Math.PI * omega * weekNumber)));
+            }
+            return maxNormal;
         }
 
-        private decimal GetMinNormal(string name, int weekNumber)
+        private double GetMinNormal(Node res, int weekNumber)
         {
-            return weekNumber * 10;
+            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+            double minNormal = res.m.min_volume;
+            if (dr.Length > 0)
+            {
+                double lower_max = double.MaxValue;
+                if (dr[0]["NORhi_max"].ToString() != "Infinity")
+                    lower_max = double.Parse(dr[0]["NORlo_max"].ToString());
+                
+                double lower_min = dr[0]["NORlo_min"].ToString() != "-Infinity" ? dr[0].Field<double>("NORlo_min") : double.MinValue;
+                double lower_mu = double.Parse(dr[0]["NORlo_mu"].ToString());
+                double lower_alpha = double.Parse(dr[0]["NORlo_alpha"].ToString()); 
+                double omega = 1.0 / 52.0;
+                double lower_beta = double.Parse(dr[0]["NORlo_beta"].ToString()); 
+                minNormal = Math.Min(lower_max,
+                                        Math.Max(lower_min,
+                                               lower_mu +
+                lower_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
+                lower_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
+            }
+            return minNormal;
         }
 
         private  void OnIterationBottom()
@@ -133,6 +178,23 @@ namespace MODSIMModeling.ReservoirOps
 		private  void OnFinished()
 		{
 		}
-	}
+
+        private DataTable ReadCsv(string filePath)
+        {
+            string connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" +
+                Path.GetDirectoryName(filePath) + ";Extended Properties=\"Text;HDR=YES;FMT=Delimited\"";
+            string fileName = Path.GetFileName(filePath);
+            string selectString = "SELECT * FROM [" + fileName + "]";
+            using (OleDbConnection connection = new OleDbConnection(connectionString))
+            {
+                using (OleDbDataAdapter adapter = new OleDbDataAdapter(selectString, connection))
+                {
+                    DataTable dataTable = new DataTable();
+                    adapter.Fill(dataTable);
+                    return dataTable;
+                }
+            }
+        }
+    }
 
 }
