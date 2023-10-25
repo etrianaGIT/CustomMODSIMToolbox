@@ -4,36 +4,52 @@ using System.Linq;
 using System.Text;
 using Csu.Modsim.ModsimIO;
 using Csu.Modsim.ModsimModel;
-using DiversionRotation;
+using MODSIMModeling.DiversionRotation;
+using MODSIMModeling;
+using MODSIMModeling.ReservoirOps;
 
-namespace MainMODSIMRun
+namespace MODSIMModeling.MainMODSIMRun
 {
     class Program
     {
         public static Model myModel = new Model();
-		public static DemRotation Demtool;
-		static void Main(string[] CmdArgs)
-		{
-			string FileName = CmdArgs[0];
-			myModel.OnMessage += OnMessage;
-			myModel.OnModsimError += OnError;
+        // declaring the plug-ins
+        public static ReservoirLayers resTool;
+        //public static EconoModeling econoTool;
 
-			XYFileReader.Read(myModel, FileName);
+        static void Main(string[] CmdArgs)
+        {
+            string FileName = CmdArgs[0];
+            myModel.OnMessage += OnMessage;
+            myModel.OnModsimError += OnError;
 
-			//Adding 'plug-ins'
-			Demtool = new DemRotation(ref myModel);
+            XYFileReader.Read(myModel, FileName);
 
-			Modsim.RunSolver(myModel);
-		}
+            //Adding 'plug-ins'
+            //Demtool = new DemRotation(ref myModel);
 
-		private static void OnMessage(string message)
-		{
-			Console.WriteLine(message);
-		}
+            //econoTool = new EconoModeling(ref myModel);
+            //econoTool.messageOutRun += OnMessage;
 
-		private static void OnError(string message)
-		{
-			Console.WriteLine(message);
-		}
-	}
+            resTool = new ReservoirLayers(ref myModel,saveXYRun: true);
+            resTool.messageOutRun += OnMessage;
+
+            //foreach (Node res in myModel.Nodes_Reservoirs)
+            //	res.m.min_volume = res.m.min_volume;// 0;
+
+            Modsim.RunSolver(myModel);
+
+            Console.ReadLine();
+        }
+
+        private static void OnMessage(string message)
+        {
+            Console.WriteLine(message);
+        }
+
+        private static void OnError(string message)
+        {
+            Console.WriteLine(message);
+        }
+    }
 }

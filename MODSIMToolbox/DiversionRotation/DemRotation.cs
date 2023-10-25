@@ -5,7 +5,7 @@ using System.Text;
 using Csu.Modsim.ModsimIO;
 using Csu.Modsim.ModsimModel;
 
-namespace DiversionRotation
+namespace MODSIMModeling.DiversionRotation
 {
     public class DemRotation
     {

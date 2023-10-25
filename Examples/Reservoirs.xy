@@ -1,0 +1,349 @@
+xyVersion 8.6
+numhydtables 0
+n_links 6
+n_nodes 7
+n_lags 5
+ExtManualStorageRightActive False
+ExtStorageRightActive False
+ExtWaterRightsActive False
+ExtLastFillRentActive False
+NonstorageNodeSize 100
+DemandNodeSize 100
+ReservoirNodeSize 100
+LinkSize 100
+BackgroundImageLocation 
+BackgroundImageSize 0
+DefaultFlowUnits acre-ft/month
+DefaultStorageUnits acre-ft
+hydroCtrl
+ExtHydropowerActive False
+effCurve
+effCurveName powerEff
+fakeht
+1 1000
+qt
+1 100000
+qt_units cfs
+ht_units ft
+efft
+0 1
+1 1
+2 1
+3 1
+effCurve
+effCurveName powerEff_2
+fakeht
+1 1000
+qt
+1 1000
+qt_units cfs
+ht_units ft
+efft
+0 1
+1 1
+2 1
+3 1
+effCurve
+effCurveName powerEff_3
+fakeht
+1 1000
+qt
+1 1000
+qt_units cfs
+ht_units ft
+efft
+0 1
+1 1
+2 1
+3 1
+node
+name NonStorage
+nuid d933e83f-e87f-4ff7-98ae-05f884bd232e
+desc 
+num 1
+ntype 2
+out 1
+pos
+0 69.5000
+1 116.5000
+labelpos
+0 69.5000
+1 125.0000
+select 0
+node
+name Reservoir
+nuid 84552f48-73f7-4bdb-8eae-44aa8baaaf21
+desc 
+num 2
+ntype 1
+in 1
+out 2
+pos
+0 203.5000
+1 115.5000
+labelpos
+0 203.5000
+1 124.0000
+select 0
+max_vol 200000
+min_vol 1000
+start_vol 50000
+reservoir_units acre-ft
+effCurveName powerEff
+justTheName True
+resnext 2
+resprev 2
+tstarget
+interpolate True
+units acre-ft
+02/01/1980 00:00:00	10000
+03/01/1980 00:00:00	20000
+04/01/1980 00:00:00	30000
+05/01/1980 00:00:00	40000
+10/01/1980 00:00:00	85000
+12/01/1980 00:00:00	10000
+area_units acres
+capacity_units acre-ft
+hcapacity_units acre-ft/month
+resbali
+resbaliprio
+1 -100
+2 -200
+resbalpcts
+0 100
+1 50
+2 25
+node
+name Reservoir1
+nuid d464bdf8-6982-4ddd-b178-2da0532c2c2e
+desc 
+num 3
+ntype 1
+in 3
+out 4
+pos
+0 200.5000
+1 254.5000
+labelpos
+0 200.5000
+1 263.0000
+select 0
+max_vol 200000
+reservoir_units acre-ft
+effCurveName powerEff_2
+justTheName True
+resnext 3
+resprev 3
+tstarget
+units acre-ft
+01/02/1980 00:00:00	0
+area_units acres
+capacity_units acre-ft
+hcapacity_units acre-ft/day
+resbali
+resbalpcts
+0 100
+resbalflag 1
+node
+name NonStorage1
+nuid 031fe09b-2dea-417e-abf2-e841e5438c25
+desc 
+num 4
+ntype 2
+out 3
+pos
+0 68.5000
+1 254.5000
+labelpos
+0 68.5000
+1 263.0000
+select 0
+node
+name NonStorage2
+nuid 7bc5ad6c-0510-478c-b2ab-dd08ba62ce1d
+desc 
+num 5
+ntype 2
+in 2
+in 4
+out 5
+pos
+0 346.5000
+1 193.5000
+labelpos
+0 346.5000
+1 202.0000
+select 0
+node
+name Reservoir2
+nuid c39ca2ca-8585-4075-8b31-7870bad5d18c
+desc 
+num 6
+ntype 1
+in 5
+out 6
+pos
+0 487.5000
+1 194.5000
+labelpos
+0 487.5000
+1 203.0000
+select 0
+max_vol 200000
+reservoir_units acre-ft
+effCurveName powerEff_3
+justTheName True
+resnext 6
+resprev 6
+tstarget
+units acre-ft
+01/02/1980 00:00:00	0
+area_units acres
+capacity_units acre-ft
+hcapacity_units acre-ft/day
+resbali
+resbalpcts
+0 100
+resbalflag 1
+node
+name Sink
+nuid 5447226f-0785-4053-bee4-94276c571073
+desc 
+num 7
+ntype 4
+in 6
+pos
+0 650.5000
+1 194.5000
+labelpos
+0 650.5000
+1 203.0000
+select 0
+link
+lname NonStorage_Reservoir
+luid d9c8c109-2b6c-4d28-ab11-c5583f482925
+ldescription 
+lnum 1
+fromnum 1
+tonum 2
+select 0
+link
+lname Reservoir_NonStorage2
+luid 1999822a-bed6-4538-973d-2eeeb37d0385
+ldescription 
+lnum 2
+fromnum 2
+tonum 5
+select 0
+link
+lname NonStorage1_Reservoir1
+luid 6bc947ef-319b-4613-8f9b-fac31370cfef
+ldescription 
+lnum 3
+fromnum 4
+tonum 3
+select 0
+link
+lname Reservoir1_NonStorage2
+luid 0828c095-d881-45a0-93ba-f2616784adba
+ldescription 
+lnum 4
+fromnum 3
+tonum 5
+select 0
+link
+lname NonStorage2_Reservoir2
+luid 74d748c8-6dc2-4fba-b1d1-695223aa98e6
+ldescription 
+lnum 5
+fromnum 5
+tonum 6
+select 0
+link
+lname Reservoir2_Sink
+luid b8e8e670-86d4-48ee-a339-5e76faef461f
+ldescription 
+lnum 6
+fromnum 6
+tonum 7
+select 0
+ially 1 # Explicit_Targets
+iplot 0
+iprd Daily
+iut 0
+n_years 1
+rdim
+0 0
+1 0
+2 20480
+3 2700
+title Reservoirs
+uselags 1
+maxit 100
+gw_cp 0.05
+flowth_cp 0.00005
+evap_cp 0.01
+infeasrestart 0
+relxacrul 0
+dataStartDate 01/01/1980 00:00:00
+dataEndDate 01/01/1982 00:00:00
+startingDate 01/01/1980 00:00:00
+endingDate 01/01/1981 00:00:00
+accrualDate 01/01/1980 00:00:00
+seasCapDate 01/01/1980 00:00:00
+accuracy 2
+defaultMaxCap 299999999900
+res_output 1
+dws_rel 1
+elev_end 1
+evp_loss 1
+evp_rate 1
+gwater 1
+head_avg 1
+hydra_Cap 1
+powr_avg 1
+powr_pk 1
+pump_in 1
+pump_out 1
+pwr_2nd 1
+seepage 1
+spills 1
+stor_beg 1
+stor_end 1
+stor_trg 1
+unreg_in 1
+ups_rel 1
+dem_output 1
+dem_sht 1
+demand 1
+gw_in 1
+surf_in 1
+acc_flow 1
+acc_output 1
+acrl 1
+stgl 1
+flo_flow 1
+flo_output 1
+loss 1
+natflow 1
+fromgwtono 1
+gw_output 1
+noTimeStepsInMemorygwinfiltra 1
+spcl_rpts 0
+part_flows 0
+ver7OutputFiles 0
+ver8MSDBOutputFiles 0
+SQLiteOutputFiles 1
+DeleteTempVer8OutputFiles 1
+noTimeStepsInMemory 12
+hydroStateOUT 1
+nonStorage_output 1
+l_MaxOUT 1
+l_MinOUT 1
+Flow_ThruOUT 1
+Rout_RetOUT 1
+InflowOUT 1
+nomaxmesg 0
+constsysst 0
+IsBackRoutingActive 0
+IsStorageAccountWithRouting 0
