@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using Csu.Modsim.ModsimIO;
 using Csu.Modsim.ModsimModel;
+using Csu.Modsim.NetworkUtils;
 
 namespace MODSIMModeling.ReservoirOps
 {
@@ -19,6 +20,7 @@ namespace MODSIMModeling.ReservoirOps
         private DataTable _DtParams;
 
         public event ProcessMessage messageOutRun;     //event
+        private ModelOutputSupport modsimoutputsupport;
 
         public ReservoirLayers(ref Model m_Model, bool saveXYRun)
 		{
@@ -29,7 +31,7 @@ namespace MODSIMModeling.ReservoirOps
 			m_Model.End += OnFinished;
 			
 			myModel = m_Model;
-
+            
             //Read parameters in a datatable
             _DtParams = ReadCsv("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
             
@@ -71,8 +73,25 @@ namespace MODSIMModeling.ReservoirOps
 
         private  void OnInitialize()
 		{
-			
-		}
+            // Setup user output variable to display the cost in reservoirs.
+            modsimoutputsupport = myModel.OutputSupportClass as ModelOutputSupport;
+            modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "Layer_Target", false, true, "Volume");
+            modsimoutputsupport.AddCurrentUserReservoirOutput += AddMyResOutput;
+        }
+
+        private void AddMyResOutput(Node node, DataRow row)
+        {
+            if (node.mnInfo.balanceLinks != null)
+            {
+                Link tgtLink = node.mnInfo.balanceLinks.link;
+                if (node.m.resBalance.incrPriorities.Length > 1)
+                {
+                    //Assumes that a single layer is used in the reservoir
+                    tgtLink = node.mnInfo.balanceLinks.link;
+                }
+                row["Layer_Target"] = tgtLink.mlInfo.hi/myModel.ScaleFactor;
+            }
+        }
 
         private  void OnIterationTop()
 		{
