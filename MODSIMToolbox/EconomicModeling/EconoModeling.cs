@@ -137,14 +137,15 @@ namespace MODSIMModeling.EconomicModeling
                 messageOutRun($"Found {costInfo.Rows.Count} links with cost info.");
                 messageOutRun($"\t and {resCount} reservoir nodes with cost info.");
 
-                //Adjust cost for additional storage in the reservoir nodes - based on the cost structure
-                //  +8,000,000 is the leaste cost in this network
-                int resExcCount = 0;
-                foreach (Node res in m_Model.Nodes_Reservoirs)
-                {
-                    res.mnInfo.excessStoLink.mlInfo.cost = 8000000 + resExcCount;
-                    resExcCount++;
-                }
+                ////Adjust cost for additional storage in the reservoir nodes - based on the cost structure
+                ////  +8,000,000 is the leaste cost in this network
+                //int resExcCount = 0;
+                //foreach (Node res in m_Model.Nodes_Reservoirs)
+                //{
+                //    res.mnInfo.excessStoLink.mlInfo.cost = 8000000 + resExcCount;
+                //    res.mnInfo.spillLink.mlInfo.cost = 200000000 + resExcCount;
+                //    resExcCount++;
+                //}
 
             }
             else
@@ -207,6 +208,16 @@ namespace MODSIMModeling.EconomicModeling
                 //else
                 //    l.mlInfo.lo = 0;
             }
+
+            ////Adjust cost for additional storage in the reservoir nodes - based on the cost structure
+            ////  +8,000,000 is the leaste cost in this network
+            //int resExcCount = 0;
+            //foreach (Node res in m_Model.Nodes_Reservoirs)
+            //{
+            //    res.mnInfo.excessStoLink.m.cost = 8000000 + resExcCount;
+            //    res.mnInfo.spillLink.m.cost = 200000000 + resExcCount;
+            //    resExcCount++;
+            //}
         }
 
         private void OnIterationConverge()
