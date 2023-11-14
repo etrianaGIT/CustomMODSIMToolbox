@@ -61,6 +61,8 @@ namespace MODSIMModeling.ReservoirOps
                     newdr[0] = dr["EndDate"].ToString();
                     newdr[1] = GetMaxNormal(res, weekNumber) * myModel.ScaleFactor;
                     dt.Rows.Add(newdr); 
+
+                    
                 }
                 //Set the lower layer placeholder
                 res.m.resBalance = new ResBalance();
@@ -68,7 +70,22 @@ namespace MODSIMModeling.ReservoirOps
                 res.m.resBalance.incrPriorities = new long[] { -100, 0 };
                 res.m.resBalance.targetPercentages = new double[] { 20, 100 };
 
+                //Other reservoir characteristic
+                res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");
+                res.m.pcapUnits = ModsimUnits.FromLabel("MCM");
             }
+        }
+
+        private long GetParameterValue(Node res, string colName)
+        {
+            DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
+            long value = -999;
+
+            if (dr.Length > 0)
+            {
+                value = long.Parse(Math.Round(double.Parse(dr[0][colName].ToString()) * myModel.ScaleFactor,0).ToString());
+            }
+            return value;
         }
 
         private  void OnInitialize()
@@ -114,10 +131,12 @@ namespace MODSIMModeling.ReservoirOps
 
         private double GetMaxNormal(Node res, int weekNumber)
         {
-            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+            DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
             double maxNormal = res.m.max_volume;
+            
             if(dr.Length>0)
             {
+                res.description = dr[0]["GRanD_NAME"].ToString();
                 double upper_max = double.MaxValue;
                 if(!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
                     upper_max= double.Parse(dr[0]["NORhi_max"].ToString());
@@ -174,7 +193,7 @@ namespace MODSIMModeling.ReservoirOps
 
         private double GetMaxReleaseParameter(Node res)
         {
-            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+            DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
             double maxRelease = myModel.defaultMaxCap;
             if (dr.Length > 0)
             {
