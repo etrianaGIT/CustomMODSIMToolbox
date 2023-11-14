@@ -30,7 +30,12 @@ namespace MODSIMModeling.MainMODSIMRun
 			econoTool = new EconoModeling(ref myModel);
 			econoTool.messageOutRun+= OnMessage;
 
-            Modsim.RunSolver(myModel);
+			//foreach (Node res in myModel.Nodes_Reservoirs)
+			//	res.m.min_volume = res.m.min_volume;// 0;
+
+			Modsim.RunSolver(myModel);
+
+			Console.ReadLine();
 		}
 
 		private static void OnMessage(string message)
