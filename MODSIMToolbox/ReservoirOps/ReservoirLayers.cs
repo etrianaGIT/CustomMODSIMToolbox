@@ -67,8 +67,9 @@ namespace MODSIMModeling.ReservoirOps
                 //Set the lower layer placeholder
                 res.m.resBalance = new ResBalance();
                 res.m.resBalance.PercentBasedOnMaxCapacity = false;
-                res.m.resBalance.incrPriorities = new long[] { -100, 0 };
+                res.m.resBalance.incrPriorities = new long[] { -10000, -2000 };
                 res.m.resBalance.targetPercentages = new double[] { 20, 100 };
+                res.m.resOutLink.m.cost = 1;
 
                 //Other reservoir characteristic
                 res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");
@@ -124,7 +125,7 @@ namespace MODSIMModeling.ReservoirOps
                 DataTable dt = res.m.adaTargetsM.dataTable;
                 
                 //Set the lower layer percent (as a function of the max normal = target)
-                res.m.resBalance.targetPercentages[1] =  (double) (minNormal/maxNormal*100);
+                res.m.resBalance.targetPercentages[0] =  (double) (minNormal/maxNormal*100);
 
             }
         }
