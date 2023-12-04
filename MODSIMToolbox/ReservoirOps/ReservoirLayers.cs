@@ -67,7 +67,7 @@ namespace MODSIMModeling.ReservoirOps
                 //Set the lower layer placeholder
                 res.m.resBalance = new ResBalance();
                 res.m.resBalance.PercentBasedOnMaxCapacity = false;
-                res.m.resBalance.incrPriorities = new long[] { -10000, -2000 };
+                res.m.resBalance.incrPriorities = new long[] { -30000 + res.number, -10000 + res.number };
                 res.m.resBalance.targetPercentages = new double[] { 20, 100 };
                 res.m.resOutLink.m.cost = 1;
 
@@ -157,7 +157,7 @@ namespace MODSIMModeling.ReservoirOps
 
         private double GetMinNormal(Node res, int weekNumber)
         {
-            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+            DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
             double minNormal = res.m.min_volume;
             if (dr.Length > 0)
             {
@@ -188,7 +188,8 @@ namespace MODSIMModeling.ReservoirOps
                 if (res.m.resBypassL != null)
                     resInflow += res.m.resBypassL.mlInfo.flow;
                 if(res.m.resOutLink!=null)
-                    res.m.resOutLink.mlInfo.hi = (long) Math.Round((1D + GetMaxReleaseParameter(res)) * resInflow,0);
+                    //Using the link downstream to capture both bypass and release
+                    res.m.resOutLink.to.OutflowLinks.link.mlInfo.hi = (long) Math.Round((1D + GetMaxReleaseParameter(res)) * resInflow,0);
             }
         }
 
