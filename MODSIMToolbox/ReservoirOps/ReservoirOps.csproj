@@ -60,6 +60,7 @@
     <Reference Include="libsim">
       <HintPath>..\MODSIMLibraries\x64\libsim.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="ModsimModel">
       <HintPath>..\MODSIMLibraries\x64\ModsimModel.dll</HintPath>
     </Reference>
@@ -79,6 +80,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ObservedFlow.cs" />
     <Compile Include="Routing.cs" />
     <Compile Include="ReservoirLayers.cs" />
   </ItemGroup>
