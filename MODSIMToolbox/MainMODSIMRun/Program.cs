@@ -7,6 +7,7 @@ using Csu.Modsim.ModsimModel;
 using MODSIMModeling.DiversionRotation;
 using MODSIMModeling;
 using MODSIMModeling.ReservoirOps;
+using MODSIMModeling.Routing;
 
 namespace MODSIMModeling.MainMODSIMRun
 {
@@ -15,6 +16,7 @@ namespace MODSIMModeling.MainMODSIMRun
         public static Model myModel = new Model();
         // declaring the plug-ins
         public static ReservoirLayers resTool;
+        public static RoutingUtils routeTool;
         //public static EconoModeling econoTool;
 
         static void Main(string[] CmdArgs)
@@ -30,6 +32,9 @@ namespace MODSIMModeling.MainMODSIMRun
 
             //econoTool = new EconoModeling(ref myModel);
             //econoTool.messageOutRun += OnMessage;
+
+            routeTool = new RoutingUtils(ref myModel);
+            routeTool.messageOutRun += OnMessage;
 
             resTool = new ReservoirLayers(ref myModel,saveXYRun: true);
             resTool.messageOutRun += OnMessage;
