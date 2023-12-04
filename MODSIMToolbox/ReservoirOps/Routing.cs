@@ -21,19 +21,18 @@ namespace MODSIMModeling.Routing
 
         public event ProcessMessage messageOutRun;     //event
         
-        public RoutingUtils(ref Model m_Model, bool saveXYRun)
+        public RoutingUtils(ref Model m_Model)
 		{
 			myModel = m_Model;
             
             //Read parameters in a datatable
-            _DtParams = ReadCsv("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
+            _DtParams = ReadCsv("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\WAlloc\\MODSIM\\routing\\UCOL_NHM_MK_Params.csv");
             
             //Process reservoir targets
 			SetRoutingParams();
 
             //Save changes to the XY (to the same file)
-            if(saveXYRun)
-                XYFileWriter.Write(myModel, myModel.fname);
+            XYFileWriter.Write(myModel, myModel.fname);
         }
 
         private void SetRoutingParams()
@@ -55,7 +54,7 @@ namespace MODSIMModeling.Routing
                     //Setting Muskingum parameter
                     l.m.spyldc = double.Parse(dr[0]["MX"].ToString());
                     l.m.transc = double.Parse(dr[0]["MK"].ToString());
-                    l.m.distc = double.Parse(dr[0]["MT"].ToString());
+                    l.m.distc = 1;// double.Parse(dr[0]["MT"].ToString());
                     //Cleaning lag factors
                     for (int i = 0; i < l.m.lagfactors.Length; i++)
                     {
