@@ -23,24 +23,17 @@ namespace MODSIMModeling.Routing
         
         public RoutingUtils(ref Model m_Model)
 		{
-			myModel = m_Model;
-            
-            //Read parameters in a datatable
-            _DtParams = ReadCsv("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\WAlloc\\MODSIM\\routing\\UCOL_NHM_MK_Params.csv");
-            
-            //Process reservoir targets
-			SetRoutingParams();
-
-            //Save changes to the XY (to the same file)
-            XYFileWriter.Write(myModel, myModel.fname);
+			myModel = m_Model;           
         }
 
-        private void SetRoutingParams()
+        public void SetRoutingParams(string paramCSV)
         {
+            //Read parameters in a datatable
+            _DtParams = ReadCsv(paramCSV);
             //Setting the "Model Generated" flag
             myModel.useLags = 0;
             //Setting the number of lag factors
-            myModel.nlags = 5;
+            myModel.nlags = 16;
 
             foreach (Link l in myModel.Links_All)
             {
