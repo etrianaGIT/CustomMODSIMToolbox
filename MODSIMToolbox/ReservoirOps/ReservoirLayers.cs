@@ -22,7 +22,7 @@ namespace MODSIMModeling.ReservoirOps
         public event ProcessMessage messageOutRun;     //event
         private ModelOutputSupport modsimoutputsupport;
 
-        public ReservoirLayers(ref Model m_Model, bool saveXYRun)
+        public ReservoirLayers(ref Model m_Model)
 		{
 			m_Model.Init += OnInitialize;
 			m_Model.IterBottom += OnIterationBottom;
@@ -32,19 +32,17 @@ namespace MODSIMModeling.ReservoirOps
 			
 			myModel = m_Model;
             
-            //Read parameters in a datatable
-            _DtParams = ReadCsv("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
-            
-            //Process reservoir targets
-			SetReservvoirTargets();
-
-            //Save changes to the XY (run)
-            if(saveXYRun)
-                XYFileWriter.Write(myModel, myModel.fname.Replace(".xy","Run.xy"));
+            ////Save changes to the XY (run)
+            //if(saveXYRun)
+            //    XYFileWriter.Write(myModel, myModel.fname.Replace(".xy","Run.xy"));
         }
 
-        private void SetReservvoirTargets()
+        public void SetReservvoirTargets(string paramsCsv)
         {
+            //Read parameters in a datatable
+            _DtParams = ReadCsv(paramsCsv);
+
+
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
                 //res.m.min_volume = res.m.min_volume;
@@ -73,7 +71,7 @@ namespace MODSIMModeling.ReservoirOps
 
                 //Other reservoir characteristic
                 res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");
-                res.m.pcapUnits = ModsimUnits.FromLabel("MCM");
+                res.m.reservoir_units = ModsimUnits.FromLabel("MCM");
             }
         }
 
@@ -94,7 +92,7 @@ namespace MODSIMModeling.ReservoirOps
             // Setup user output variable to display the cost in reservoirs.
             modsimoutputsupport = myModel.OutputSupportClass as ModelOutputSupport;
             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "Layer_Target", false, true, "Volume");
-            modsimoutputsupport.AddCurrentUserReservoirOutput += AddMyResOutput;
+            modsimoutputsupport.AddCurrentUserReservoir_STOROutput += AddMyResOutput;
         }
 
         private void AddMyResOutput(Node node, DataRow row)
