@@ -72,6 +72,15 @@ namespace MODSIMModeling.ReservoirOps
                 //Other reservoir characteristic
                 res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");
                 res.m.reservoir_units = ModsimUnits.FromLabel("MCM");
+
+                //Set starting volume
+                DateTime dtime0 = myModel.TimeStepManager.Index2Date(0, TypeIndexes.ModelIndex);
+                Calendar calendar0 = CultureInfo.InvariantCulture.Calendar;
+                int weekNumber0 = calendar0.GetWeekOfYear(dtime0, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                double minNormal = GetMinNormal(res, weekNumber0);
+                double maxNormal = GetMaxNormal(res, weekNumber0);
+                //reservoir units are MCM - need to convert from AF to MCM
+                res.m.starting_volume = (long) Math.Round((minNormal+maxNormal) * 1233.48 / 1000000 * myModel.ScaleFactor / 2.0,0);
             }
         }
 
