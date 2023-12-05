@@ -81,7 +81,7 @@ namespace MODSIMModeling.Preprocessing
                             {
                                 string[] fields = parser.ReadFields();
                                 string datetime = fields[datetimeIndex];
-                                int q = -999;
+                                int q = (int)Math.Round(-999 * myModel.ScaleFactor, 0); 
                                 if(fields[qIndex].ToString()!="")
                                     q = (int) Math.Round(double.Parse(fields[qIndex].ToString())*myModel.ScaleFactor,0);
                                 if (isFirstDate && DateTime.Parse(datetime) > MODSIMIniDate)
