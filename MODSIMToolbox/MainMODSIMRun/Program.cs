@@ -35,17 +35,19 @@ namespace MODSIMModeling.MainMODSIMRun
             //econoTool = new EconoModeling(ref myModel);
             //econoTool.messageOutRun += OnMessage;
 
-            routeTool = new RoutingUtils(ref myModel);
-            routeTool.messageOutRun += OnMessage;
-            //Process reservoir targets
-            routeTool.SetRoutingParams("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\WAlloc\\MODSIM\\routing\\UCOL_NHM_MK_Params.csv");   
+            //routeTool = new RoutingUtils(ref myModel);
+            //routeTool.messageOutRun += OnMessage;
+            ////Process reservoir targets
+            //routeTool.SetRoutingParams("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\WAlloc\\MODSIM\\routing\\UCOL_NHM_MK_Params.csv");   
 
-            //resTool = new ReservoirLayers(ref myModel,saveXYRun: true);
-            //resTool.messageOutRun += OnMessage;
+            resTool = new ReservoirLayers(ref myModel);
+            resTool.messageOutRun += OnMessage;
+            //Process reservoir targets
+            resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
 
             //obsFlowImport = new ObservedFLowImport(ref myModel);
             //obsFlowImport.ImportTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gage_search");
-            
+
             XYFileWriter.Write(myModel, myModel.fname);
 
             Modsim.RunSolver(myModel);
