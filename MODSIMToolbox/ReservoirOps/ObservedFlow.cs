@@ -108,6 +108,25 @@ namespace MODSIMModeling.Preprocessing
             }
         }
 
+        public void ClearInflows()
+        {
+            foreach (Node nsnode in myModel.Nodes_NonStorage)
+            {
+                //for (int i = nsnode.m.adaInflowsM.dataTable.Rows.Count - 1; i > 0; i--)
+                //{
+                //    nsnode.m.adaInflowsM.dataTable.Rows.RemoveAt(i);
+                //}
+                myModel.FireOnMessage($"\tCleaning inflow node {nsnode.name}");
+                //nsnode.m.adaInflowsM.dataTable.Rows.Clear();
+                //nsnode.m.adaInflowsM.dataTable.Rows.Add(nsnode.m.adaInflowsM.dataTable.Rows[0]);
+                
+                //DataRow dr0 = nsnode.m.adaInflowsM.dataTable.Rows[0];
+                //nsnode.m.adaInflowsM.dataTable.Rows.Remove(dr0);
+                //dr0[1] = 0;
+                nsnode.m.adaInflowsM.dataTable.Rows.Clear();
+                nsnode.m.adaInflowsM.dataTable.Rows.Add(new object[] {myModel.TimeStepManager.dataStartDate,0 });
+            }
+        }
     }
 
 }
