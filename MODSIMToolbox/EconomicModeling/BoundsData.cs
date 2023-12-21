@@ -58,7 +58,7 @@ namespace MODSIMModeling.EconomicModeling
                                     WHERE TSTypeID = (SELECT TSTypeID FROM TSTypes
 				                                       WHERE MODSIMTSType = ""minVariable"" AND IsPattern = 0) 
 	                                    AND FeatureID = {featureID} AND TSDate = '{dbDate}'";
-                    l.mlInfo.lo =(long) Math.Round(double.Parse(m_db.ExecuteScalar(sql).ToString())*_scaleFactor);
+                    l.mlInfo.hi =(long) Math.Round(double.Parse(m_db.ExecuteScalar(sql).ToString()));
                     break;
                 case string a when a.Contains("LBM"):
                     // code block
@@ -69,7 +69,7 @@ namespace MODSIMModeling.EconomicModeling
                                     WHERE TSTypeID = (SELECT TSTypeID FROM TSTypes
 				                                       WHERE MODSIMTSType = ""minVariable"" AND IsPattern = 1) 
 	                                    AND FeatureID = {featureID} AND TSDate LIKE '{dbDate}'";
-                    l.mlInfo.lo = (long)Math.Round(double.Parse(m_db.ExecuteScalar(sql).ToString()) * _scaleFactor);
+                    l.mlInfo.hi = (long)Math.Round(double.Parse(m_db.ExecuteScalar(sql).ToString()));
                     break;
                 default:
                     // code block
