@@ -170,9 +170,12 @@ namespace MODSIMModeling.EconomicModeling
                 {
                     BoundsData bd;
                     Node res = m_Model.FindNode(row["MOD_Name"].ToString());
-                    Link lresmin = res.mnInfo.balanceLinks.link;
-                    bd = new BoundsData(row, m_Model.ScaleFactor,lresmin.name,lresmin.uid.ToString());
-                    linksBounds.Add(bd.lName, bd);
+                    if (res != null)
+                    {
+                        Link lresmin = res.mnInfo.balanceLinks.link;
+                        bd = new BoundsData(row, m_Model.ScaleFactor, lresmin.name, lresmin.uid.ToString());
+                        linksBounds.Add(bd.lName, bd);
+                    }
                 }
                 messageOutRun($"Found {linksBounds.Count} links with capacity info.");
 
