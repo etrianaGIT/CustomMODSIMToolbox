@@ -78,13 +78,14 @@ namespace MODSIMModeling.EconomicModeling
                     //Assumes that a single layer is used in the reservoir
                     tgtLink = node.mnInfo.balanceLinks.next.link;
                 }
-                row["Cost"] = tgtLink.mlInfo.cost;
+                row["Cost"] = tgtLink.mlInfo.cost / m_Model.CostScaleFactor;
             }
         }
 
         private void AddMyLinkOutput(Link link, DataRow row)
         {
-            row["Cost"] = link.mlInfo.cost;
+            // Cost in decimal form.
+            row["Cost"] = link.mlInfo.cost / m_Model.CostScaleFactor;
         }
 
         private void InitilizeVariables()
@@ -122,10 +123,10 @@ namespace MODSIMModeling.EconomicModeling
                         resCount += 1;
                     }
                     if (row["Type"].ToString() == "Constant")
-                        cd = new CostData(double.Parse(row["value"].ToString()));
+                        cd = new CostData(double.Parse(row["value"].ToString()),m_Model.CostScaleFactor);
                     else
                     {
-                        cd = new CostData(int.Parse(row["pkid"].ToString()), row["Type"].ToString());
+                        cd = new CostData(int.Parse(row["pkid"].ToString()), row["Type"].ToString(), m_Model.CostScaleFactor);
                         cd.SetDataBounds(m_db);
                     }
                     if (isRes && lTrgt != null)
@@ -251,7 +252,10 @@ namespace MODSIMModeling.EconomicModeling
             }
 
         }
-
+        /// <summary>
+        /// Calculates the cost for the current level of flows for all the links that have cost function defined
+        /// </summary>
+        /// <param name="costConverged"></param>
         private void SetCostsBasedOnFlows(ref bool costConverged)
         {
             //Set Cost as a function of flow

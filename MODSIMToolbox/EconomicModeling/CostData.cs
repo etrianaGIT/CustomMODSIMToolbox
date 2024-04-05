@@ -16,18 +16,21 @@ namespace MODSIMModeling.EconomicModeling
         //private DataTable valueTbl;
         private int db_pkid;
         private string type;
-        private double prevFlow=-1;
+        private double prevCost=0;
         private Dictionary<int, Dictionary<string, double>> dataBounds;
+        private double _costScaleFactor;
 
-        public CostData(double value) 
+        public CostData(double value, double costScaleFactor ) 
         {
             this.value = value;
             type = "Constant";
+            _costScaleFactor = costScaleFactor;
         }
-        public CostData(int db_pkid, string costType) 
+        public CostData(int db_pkid, string costType, double costScaleFactor)
         {
             this.db_pkid = db_pkid;
             type = costType;
+            _costScaleFactor = costScaleFactor;
         }
 
         public void SetDataBounds(MyDBSqlite m_db)
@@ -66,51 +69,66 @@ namespace MODSIMModeling.EconomicModeling
             }
         }
 
-        public long GetCostValue(ref MyDBSqlite m_db, DateTime dateTime,double flow_kAF, ref bool converged)
+        /// <summary>
+        ///  It reads the cost in the original magnitude and applies the active cost scale factor. 
+        /// </summary>
+        /// <param name="m_db"></param>
+        /// <param name="dateTime"></param>
+        /// <param name="flow_kAF">It takes the current level of flow in kAF</param>
+        /// <param name="converged"></param>
+        /// <returns></returns>
+        public long GetCostValue(ref MyDBSqlite m_db, DateTime dateTime, double flow_kAF, ref bool converged)
         {
-            converged = converged && (prevFlow == flow_kAF);
-            if (flow_kAF != prevFlow)
+
+            //if (flow_kAF != prevCost)
+            //{
+            if (type == "MonthlyVar") //Is this needed here?
             {
-                if (type == "MonthlyVar") //Is this needed here?
+                int mon = dateTime.Month;
+                if (flow_kAF >= dataBounds[mon]["MaxFlow"])
+                    value = dataBounds[mon]["MaxCost"];
+                else
                 {
-                    int mon = dateTime.Month;
-                    if (flow_kAF >= dataBounds[mon]["MaxFlow"])
-                        value = dataBounds[mon]["MaxCost"];
+                    if (flow_kAF <= dataBounds[mon]["MinFlow"])
+                        value = dataBounds[mon]["MinCost"];
                     else
                     {
-                        if (flow_kAF <= dataBounds[mon]["MinFlow"])
-                            value = dataBounds[mon]["MinCost"];
-                        else
-                        {
 
-                            int _mon = dateTime.Month;
-                            string sql = $@"SELECT (cost1 + (({flow_kAF}-flow1)*(cost2-cost1)/(flow2-flow1))) as IntCost FROM (
-		                            SELECT * FROM (
-			                            SELECT pkid,capacity as flow2,cost as cost2 FROM CostData
-			                            WHERE (pkid = {db_pkid} and month = {_mon} and capacity >= {flow_kAF})
-			                            ORDER by capacity 
-			                            LIMIT 1)as a2 
-		                            JOIN (
-			                            SELECT * FROM (
-			                            SELECT pkid,capacity as flow1,cost as cost1  FROM CostData
-			                            WHERE (pkid = {db_pkid} and month = {_mon} and capacity < {flow_kAF})
-			                            ORDER by capacity DESC
-			                            LIMIT 1) 
-			                            ) as a1 ON a1.pkid = a2.pkid
-		                            )";
-                            value = double.Parse(m_db.ExecuteScalar(sql).ToString());
+                        int _mon = dateTime.Month;
+                        //string sql = $@"SELECT (cost1 + (({flow_kAF}-flow1)*(cost2-cost1)/(flow2-flow1))) as IntCost FROM (
+                        //  SELECT * FROM (
+                        //   SELECT pkid,capacity as flow2,cost as cost2 FROM CostData
+                        //   WHERE (pkid = {db_pkid} and month = {_mon} and capacity >= {flow_kAF})
+                        //   ORDER by capacity 
+                        //   LIMIT 1)as a2 
+                        //  JOIN (
+                        //   SELECT * FROM (
+                        //   SELECT pkid,capacity as flow1,cost as cost1  FROM CostData
+                        //   WHERE (pkid = {db_pkid} and month = {_mon} and capacity < {flow_kAF})
+                        //   ORDER by capacity DESC
+                        //   LIMIT 1) 
+                        //   ) as a1 ON a1.pkid = a2.pkid
+                        //  )";
+                        string sql = $@"SELECT cost 
+                                                FROM CostData
+			                                    WHERE (pkid = {db_pkid} and month = {_mon} and capacity <= {flow_kAF})
+			                                    ORDER by capacity DESC 
+			                                    LIMIT 1;";
+                        value = double.Parse(m_db.ExecuteScalar(sql).ToString());
 
-                        }
                     }
                 }
-                prevFlow = flow_kAF;
             }
-            return (long) Math.Round(value);
+            converged = converged && (prevCost == value);
+            prevCost = value;
+            //}
+            //Apply the cost factor for intenal MODSIM variables.
+            return (long)Math.Round(value * _costScaleFactor);
         }
 
         internal void ResetFlow()
         {
-            prevFlow = -1;
+            prevCost = -1;
         }
     }
 }
