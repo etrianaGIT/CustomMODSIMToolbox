@@ -35,24 +35,30 @@ namespace MODSIMModeling.Routing
             //Setting the number of lag factors
             myModel.nlags = 16;
 
+            int rlCount = 1;
             foreach (Link l in myModel.Links_All)
             {
                 DataRow[] dr = _DtParams.Select($"[LinkName] = '{l.name}'");
                 if(dr!=null && dr.Length>0)
                 {
-                    //Setting losses (routing flag) in the link
-                    l.m.loss_coef = 1;
-                    //Setting return node to the next downstream node.
-                    l.m.returnNode = l.to;
-                    //Setting Muskingum parameter
-                    l.m.spyldc = double.Parse(dr[0]["MX"].ToString());
-                    l.m.transc = double.Parse(dr[0]["MK"].ToString());
-                    l.m.distc = 1;// double.Parse(dr[0]["MT"].ToString());
-                    //Cleaning lag factors
-                    for (int i = 0; i < l.m.lagfactors.Length; i++)
+                    if (rlCount > 1)
                     {
-                        l.m.lagfactors[i] = 0;
+                        //Setting losses (routing flag) in the link
+                        l.m.loss_coef = 1;
+                        //Setting return node to the next downstream node.
+                        l.m.returnNode = l.to;
+                        //Setting Muskingum parameter
+                        l.m.spyldc = double.Parse(dr[0]["MX"].ToString());
+                        l.m.transc = double.Parse(dr[0]["MK"].ToString());
+                        l.m.distc = 1;// double.Parse(dr[0]["MT"].ToString());
+                                      //Cleaning lag factors
+                        for (int i = 0; i < l.m.lagfactors.Length; i++)
+                        {
+                            l.m.lagfactors[i] = 0;
+                        }
+                        rlCount = 0;
                     }
+                   rlCount++;
                 }
             }
         }

@@ -19,6 +19,7 @@ namespace MODSIMModeling.MainMODSIMRun
         public static ReservoirLayers resTool;
         public static RoutingUtils routeTool;
         public static ObservedFLowImport obsFlowImport;
+        private static DemandProcessing procDemands;
         //public static EconoModeling econoTool;
 
         static void Main(string[] CmdArgs)
@@ -40,20 +41,23 @@ namespace MODSIMModeling.MainMODSIMRun
             ////Process reservoir targets
             //routeTool.SetRoutingParams("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\WAlloc\\MODSIM\\routing\\UCOL_NHM_MK_Params.csv");
 
-            //resTool = new ReservoirLayers(ref myModel);
-            //resTool.messageOutRun += OnMessage;
-            ////Process reservoir targets
-            //resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
+            resTool = new ReservoirLayers(ref myModel);
+            resTool.messageOutRun += OnMessage;
+            //Process reservoir targets
+            resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
 
             //obsFlowImport = new ObservedFLowImport(ref myModel);
             //obsFlowImport.ImportTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gage_search");
 
-            obsFlowImport = new ObservedFLowImport(ref myModel);
-            obsFlowImport.ClearInflows();
+            //procDemands = new DemandProcessing(ref myModel);
+            //procDemands.ImportDeamandTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gaged_streamflow\\diversions_combined_by_gage_cmd_irrcu60.csv");
+
+            //obsFlowImport = new ObservedFLowImport(ref myModel);
+            //obsFlowImport.ClearInflows();
 
             XYFileWriter.Write(myModel, myModel.fname);
 
-            //Modsim.RunSolver(myModel);
+            Modsim.RunSolver(myModel);
 
             Console.ReadLine();
         }
