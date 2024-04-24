@@ -48,6 +48,7 @@ namespace MODSIMModeling.ReservoirOps
                 //res.m.min_volume = res.m.min_volume;
                 DataTable dt = res.m.adaTargetsM.dataTable;
                 res.m.adaTargetsM.Interpolate = true;
+                res.m.adaTargetsM.units = ModsimUnits.FromLabel("MCM");
                 dt.Rows.Clear();
                 foreach (DataRow dr in myModel.TimeStepManager.timeStepsList.Rows)
                 {
@@ -57,7 +58,7 @@ namespace MODSIMModeling.ReservoirOps
                     int weekNumber = calendar.GetWeekOfYear(dtime, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
 
                     newdr[0] = dr["EndDate"].ToString();
-                    newdr[1] = GetMaxNormal(res, weekNumber) * myModel.ScaleFactor;
+                    newdr[1] = GetMaxNormal(res, weekNumber) * myModel.ScaleFactor; // * 1233.48 / 1000000
                     dt.Rows.Add(newdr); 
 
                     
@@ -80,7 +81,7 @@ namespace MODSIMModeling.ReservoirOps
                 double minNormal = GetMinNormal(res, weekNumber0);
                 double maxNormal = GetMaxNormal(res, weekNumber0);
                 //reservoir units are MCM - need to convert from AF to MCM
-                res.m.starting_volume = (long) Math.Round((minNormal+maxNormal) * 1233.48 / 1000000 * myModel.ScaleFactor / 2.0,0);
+                res.m.starting_volume = (long) Math.Round((minNormal+maxNormal) * myModel.ScaleFactor / 2.0,0);//* 1233.48 / 1000000
             }
         }
 
@@ -159,6 +160,7 @@ namespace MODSIMModeling.ReservoirOps
                 upper_alpha *  Math.Sin(2.0 *  Math.PI * omega * weekNumber) +
                 upper_beta *  Math.Cos(2.0 * Math.PI * omega * weekNumber)));
             }
+            // Assuming that the max normal is in MCM
             return maxNormal;
         }
 
