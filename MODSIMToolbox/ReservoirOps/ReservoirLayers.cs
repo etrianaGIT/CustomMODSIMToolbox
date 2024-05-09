@@ -58,7 +58,7 @@ namespace MODSIMModeling.ReservoirOps
                     int weekNumber = calendar.GetWeekOfYear(dtime, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
 
                     newdr[0] = dr["EndDate"].ToString();
-                    newdr[1] = GetMaxNormal(res, weekNumber) * myModel.ScaleFactor; // * 1233.48 / 1000000
+                    newdr[1] = GetMaxNormal(res, weekNumber);// * myModel.ScaleFactor; // * 1233.48 / 1000000
                     dt.Rows.Add(newdr); 
 
                     
@@ -81,10 +81,17 @@ namespace MODSIMModeling.ReservoirOps
                 double minNormal = GetMinNormal(res, weekNumber0);
                 double maxNormal = GetMaxNormal(res, weekNumber0);
                 //reservoir units are MCM - need to convert from AF to MCM
-                res.m.starting_volume = (long) Math.Round((minNormal+maxNormal) * myModel.ScaleFactor / 2.0,0);//* 1233.48 / 1000000
+                res.m.starting_volume = (long) Math.Round((minNormal+maxNormal) / 2.0,0);//* 1233.48 / 1000000
             }
         }
 
+        /// <summary>
+        /// Gets the value of a parameter for a reservoir.
+        /// This value is in MODSIM units because it is multiplied by the ScaleFactor.
+        /// </summary>
+        /// <param name="res">The reservoir node.</param>
+        /// <param name="colName">The name of the column containing the parameter value.</param>
+        /// <returns>The parameter value for the reservoir in MODSIM units.</returns>
         private long GetParameterValue(Node res, string colName)
         {
             DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
@@ -92,7 +99,7 @@ namespace MODSIMModeling.ReservoirOps
 
             if (dr.Length > 0)
             {
-                value = long.Parse(Math.Round(double.Parse(dr[0][colName].ToString()) * myModel.ScaleFactor,0).ToString());
+                value = long.Parse(Math.Round(double.Parse(dr[0][colName].ToString()) * myModel.ScaleFactor, 0).ToString());
             }
             return value;
         }
@@ -138,36 +145,43 @@ namespace MODSIMModeling.ReservoirOps
             }
         }
 
+        /// <summary>
+        /// Gets the maximum normal value for a reservoir based on the week number.
+        /// This value is in MODSIM units because it is based on the internal reservoir capacity variable.
+        /// </summary>
+        /// <param name="res">The reservoir node.</param>
+        /// <param name="weekNumber">The week number.</param>
+        /// <returns>The maximum normal value for the reservoir.</returns>
         private double GetMaxNormal(Node res, int weekNumber)
         {
             DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
-            double maxNormal = res.m.max_volume;
-            
-            if(dr.Length>0)
+            double maxNormal = 1.0;// = res.m.max_volume;
+
+            if (dr.Length > 0)
             {
                 res.description = dr[0]["GRanD_NAME"].ToString();
                 double upper_max = double.MaxValue;
-                if(!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
-                    upper_max= double.Parse(dr[0]["NORhi_max"].ToString());
-                double upper_min = !dr[0]["NORhi_min"].ToString().Contains("Infinity") ?dr[0].Field<double>("NORhi_min"):double.MinValue;
-                double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString()); 
-                double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString()); 
+                if (!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
+                    upper_max = double.Parse(dr[0]["NORhi_max"].ToString());
+                double upper_min = !dr[0]["NORhi_min"].ToString().Contains("Infinity") ? dr[0].Field<double>("NORhi_min") : double.MinValue;
+                double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString());
+                double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString());
                 double omega = 1.0 / 52.0;
                 double upper_beta = double.Parse(dr[0]["NORhi_beta"].ToString());
                 maxNormal = Math.Min(upper_max,
                                         Math.Max(upper_min,
                                                upper_mu +
-                upper_alpha *  Math.Sin(2.0 *  Math.PI * omega * weekNumber) +
-                upper_beta *  Math.Cos(2.0 * Math.PI * omega * weekNumber)));
+                upper_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
+                upper_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
             }
             // Assuming that the max normal is in MCM
-            return maxNormal;
+            return maxNormal / 100 * res.m.max_volume;
         }
 
         private double GetMinNormal(Node res, int weekNumber)
         {
             DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
-            double minNormal = res.m.min_volume;
+            double minNormal = 1.0;// = res.m.min_volume;
             if (dr.Length > 0)
             {
                 double lower_max = double.MaxValue;
@@ -185,7 +199,7 @@ namespace MODSIMModeling.ReservoirOps
                 lower_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
                 lower_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
             }
-            return minNormal;
+            return minNormal/100 * res.m.max_volume;
         }
 
         private  void OnIterationBottom()
