@@ -27,7 +27,7 @@ namespace MODSIMModeling.Preprocessing
             myModel = m_Model;
         }
 
-        public void ImportDeamandTimeseries(string demandFileCSV)
+        public void ImportDeamandTimeseries(string demandFileCSV, string unitsStr = "m³/d")
         {
             //Get the initial date
             MODSIMIniDate = myModel.TimeStepManager.dataStartDate;
@@ -80,7 +80,7 @@ namespace MODSIMModeling.Preprocessing
                         isFirstDate = false;
                     }
                     demNode.m.adaDemandsM.VariesByYear = true;
-                    demNode.m.adaDemandsM.units = new ModsimUnits("m³/d");
+                    demNode.m.adaDemandsM.units = new ModsimUnits(unitsStr);
                 }
             }
         }
