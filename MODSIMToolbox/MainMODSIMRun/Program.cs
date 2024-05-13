@@ -41,16 +41,19 @@ namespace MODSIMModeling.MainMODSIMRun
             ////Process reservoir targets
             //routeTool.SetRoutingParams("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\WAlloc\\MODSIM\\routing\\UCOL_NHM_MK_Params.csv");
 
-            resTool = new ReservoirLayers(ref myModel);
-            resTool.messageOutRun += OnMessage;
-            //Process reservoir targets
-            resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
+            //resTool = new ReservoirLayers(ref myModel);
+            //resTool.messageOutRun += OnMessage;
+            ////Process reservoir targets
+            //resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
 
             //obsFlowImport = new ObservedFLowImport(ref myModel);
             //obsFlowImport.ImportTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gage_search");
 
-            //procDemands = new DemandProcessing(ref myModel);
+            procDemands = new DemandProcessing(ref myModel);
+            //      This file includes the original demands compildas for the GSFLOW model
             //procDemands.ImportDeamandTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gaged_streamflow\\diversions_combined_by_gage_cmd_irrcu60.csv");
+            //      This demand file was calculated for gages having 80% complete data, using geofabric 2.0
+            procDemands.ImportDeamandTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\MassBalance\\diversions_cfs_aggregated_NoahGagescsv.csv","cfs");
 
             //obsFlowImport = new ObservedFLowImport(ref myModel);
             //obsFlowImport.ClearInflows();
