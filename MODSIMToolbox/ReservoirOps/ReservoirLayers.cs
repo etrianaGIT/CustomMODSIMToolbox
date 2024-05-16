@@ -68,7 +68,10 @@ namespace MODSIMModeling.ReservoirOps
                 res.m.resBalance.PercentBasedOnMaxCapacity = false;
                 res.m.resBalance.incrPriorities = new long[] { -30000 + res.number, -10000 + res.number };
                 res.m.resBalance.targetPercentages = new double[] { 20, 100 };
-                res.m.resOutLink.m.cost = 1;
+                if(res.m.resOutLink != null)
+                    res.m.resOutLink.m.cost = 1;
+                else
+                    Console.WriteLine("No release link for reservoir " + res.name + " defined.");
 
                 //Other reservoir characteristic
                 res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");
