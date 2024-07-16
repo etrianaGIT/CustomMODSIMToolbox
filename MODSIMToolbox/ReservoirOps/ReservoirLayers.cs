@@ -37,7 +37,7 @@ namespace MODSIMModeling.ReservoirOps
             //    XYFileWriter.Write(myModel, myModel.fname.Replace(".xy","Run.xy"));
         }
 
-        public void SetReservvoirTargets(string paramsCsv)
+        public void SetReservvoirTargets(string paramsCsv, bool onlyResWithMeasured = false)
         {
             //Read parameters in a datatable
             _DtParams = ReadCsv(paramsCsv);
@@ -45,8 +45,15 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
+                //Other reservoir characteristic
+                res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");  //This value is used in the target calculations (in MCM)
+                ModsimUnits muOrig = res.m.reservoir_units;
+                res.m.reservoir_units = ModsimUnits.FromLabel("MCM");
+
                 //res.m.min_volume = res.m.min_volume;
                 DataTable dt = res.m.adaTargetsM.dataTable;
+                if (onlyResWithMeasured && dt.Rows.Count == 0)
+                    continue;
                 res.m.adaTargetsM.Interpolate = true;
                 res.m.adaTargetsM.units = ModsimUnits.FromLabel("MCM");
                 dt.Rows.Clear();
@@ -73,10 +80,6 @@ namespace MODSIMModeling.ReservoirOps
                 else
                     Console.WriteLine("No release link for reservoir " + res.name + " defined.");
 
-                //Other reservoir characteristic
-                res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");
-                res.m.reservoir_units = ModsimUnits.FromLabel("MCM");
-
                 //Set starting volume
                 DateTime dtime0 = myModel.TimeStepManager.Index2Date(0, TypeIndexes.ModelIndex);
                 Calendar calendar0 = CultureInfo.InvariantCulture.Calendar;
@@ -84,7 +87,16 @@ namespace MODSIMModeling.ReservoirOps
                 double minNormal = GetMinNormal(res, weekNumber0);
                 double maxNormal = GetMaxNormal(res, weekNumber0);
                 //reservoir units are MCM - need to convert from AF to MCM
-                res.m.starting_volume = (long) Math.Round((minNormal+maxNormal) / 2.0,0);//* 1233.48 / 1000000
+                if (res.m.starting_volume == 0)
+                {
+                    res.m.starting_volume = (long)Math.Round((minNormal + maxNormal) / 2.0, 0);//* 1233.48 / 1000000
+                    Console.WriteLine($"\tSetting starting volume for res {res.name} to {res.m.starting_volume}.");
+                }
+                else
+                {
+                    //convert units for the initial storage
+                    res.m.starting_volume = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.starting_volume, muOrig), res.m.reservoir_units));
+                }
             }
         }
 
@@ -142,8 +154,9 @@ namespace MODSIMModeling.ReservoirOps
 
                 DataTable dt = res.m.adaTargetsM.dataTable;
                 
-                //Set the lower layer percent (as a function of the max normal = target)
-                res.m.resBalance.targetPercentages[0] =  (double) (minNormal/maxNormal*100);
+                if(dt.Rows.Count>0)
+                    //Set the lower layer percent (as a function of the max normal = target)
+                    res.m.resBalance.targetPercentages[0] =  (double) (minNormal/maxNormal*100);
 
             }
         }

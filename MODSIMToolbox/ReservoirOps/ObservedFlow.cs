@@ -84,12 +84,12 @@ namespace MODSIMModeling.Preprocessing
                                 int q = (int)Math.Round(-999 * myModel.ScaleFactor, 0); 
                                 if(fields[qIndex].ToString()!="")
                                     q = (int) Math.Round(double.Parse(fields[qIndex].ToString())*myModel.ScaleFactor,0);
-                                if (isFirstDate && DateTime.Parse(datetime) > MODSIMIniDate)
+                                if (isFirstDate && DateTime.Parse(datetime).Date > MODSIMIniDate.Date)
                                 {
                                     dataTable.Rows.Add(MODSIMIniDate, -999);
                                 }
-                                if (DateTime.Parse(datetime) >= MODSIMIniDate)
-                                    dataTable.Rows.Add(datetime, q);
+                                if (DateTime.Parse(datetime).Date >= MODSIMIniDate.Date)
+                                    dataTable.Rows.Add(DateTime.Parse(datetime).ToShortDateString(), q);
                                 isFirstDate = false;
                             }
                         }
