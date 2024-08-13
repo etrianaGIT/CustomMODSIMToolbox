@@ -46,9 +46,10 @@ namespace MODSIMModeling.ReservoirOps
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
                 //Other reservoir characteristic
-                res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");  //This value is used in the target calculations (in MCM)
+                // [7/16/24] The capacity was fixed in the source shapefile, so no need to readjust here
+                //res.m.max_volume = GetParameterValue(res, "GRanD_CAP_MCM");  //This value is used in the target calculations (in MCM)
                 ModsimUnits muOrig = res.m.reservoir_units;
-                res.m.reservoir_units = ModsimUnits.FromLabel("MCM");
+                //res.m.reservoir_units = ModsimUnits.FromLabel("MCM");
 
                 //res.m.min_volume = res.m.min_volume;
                 DataTable dt = res.m.adaTargetsM.dataTable;
@@ -73,7 +74,7 @@ namespace MODSIMModeling.ReservoirOps
                 //Set the lower layer placeholder
                 res.m.resBalance = new ResBalance();
                 res.m.resBalance.PercentBasedOnMaxCapacity = false;
-                res.m.resBalance.incrPriorities = new long[] { -30000 + res.number, -10000 + res.number };
+                res.m.resBalance.incrPriorities = new long[] { -3000 + res.number, -1000 + res.number };
                 res.m.resBalance.targetPercentages = new double[] { 20, 100 };
                 if(res.m.resOutLink != null)
                     res.m.resOutLink.m.cost = 1;
@@ -94,8 +95,9 @@ namespace MODSIMModeling.ReservoirOps
                 }
                 else
                 {
-                    //convert units for the initial storage
-                    res.m.starting_volume = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.starting_volume, muOrig), res.m.reservoir_units));
+                    // [7/16/24] The initial storage is imported in WaterALLOC from a csv file.  No need to overwrite here.
+                    ////convert units for the initial storage
+                    //res.m.starting_volume = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.starting_volume, muOrig), res.m.reservoir_units));
                 }
             }
         }
@@ -170,12 +172,12 @@ namespace MODSIMModeling.ReservoirOps
         /// <returns>The maximum normal value for the reservoir.</returns>
         private double GetMaxNormal(Node res, int weekNumber)
         {
-            DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
+            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
             double maxNormal = 1.0;// = res.m.max_volume;
 
             if (dr.Length > 0)
             {
-                res.description = dr[0]["GRanD_NAME"].ToString();
+                res.description = "ID:"+dr[0]["GRanD_ID"].ToString();
                 double upper_max = double.MaxValue;
                 if (!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
                     upper_max = double.Parse(dr[0]["NORhi_max"].ToString());
@@ -191,12 +193,13 @@ namespace MODSIMModeling.ReservoirOps
                 upper_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
             }
             // Assuming that the max normal is in MCM
-            return maxNormal / 100 * res.m.max_volume;
+            long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+            return maxNormal / 100 * maxMCM;
         }
 
         private double GetMinNormal(Node res, int weekNumber)
         {
-            DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
+            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
             double minNormal = 1.0;// = res.m.min_volume;
             if (dr.Length > 0)
             {
@@ -215,7 +218,8 @@ namespace MODSIMModeling.ReservoirOps
                 lower_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
                 lower_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
             }
-            return minNormal/100 * res.m.max_volume;
+            long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+            return minNormal /100 * maxMCM;
         }
 
         private  void OnIterationBottom()
