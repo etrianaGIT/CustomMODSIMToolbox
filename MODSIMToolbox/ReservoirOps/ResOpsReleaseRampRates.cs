@@ -12,7 +12,10 @@ using Csu.Modsim.NetworkUtils;
 
 namespace MODSIMModeling.ReservoirOps
 {
-    public class ResOpsRelease
+    /// <summary>
+    /// This class implements the 
+    /// </summary>
+    public class ResOpsReleaseRampRates
     {
         public delegate void ProcessMessage(string msg);  // delegate
 
@@ -22,10 +25,10 @@ namespace MODSIMModeling.ReservoirOps
         public event ProcessMessage messageOutRun;     //event
         private ModelOutputSupport modsimoutputsupport;
 
-        public Dictionary<string, RampingRate> rampRatesInfo;
+        public Dictionary<string, FlowConstraint> rampRatesInfo;
         private int currentMon;
 
-        public ResOpsRelease(ref Model m_Model)
+        public ResOpsReleaseRampRates(ref Model m_Model)
 		{
 			m_Model.Init += OnInitialize;
 			m_Model.IterBottom += OnIterationBottom;
@@ -42,7 +45,7 @@ namespace MODSIMModeling.ReservoirOps
             //Read parameters into the ramping rate objects
             DataTable _rampRates;
             _rampRates = ReadCsv(ratesCsv);
-            rampRatesInfo = new Dictionary<string, RampingRate>();
+            rampRatesInfo = new Dictionary<string, FlowConstraint>();
 
             foreach (DataRow row in _rampRates.Rows)
             {
@@ -50,20 +53,20 @@ namespace MODSIMModeling.ReservoirOps
                 string resName = row["reservoir_name"].ToString();
                 if (!rampRatesInfo.ContainsKey(objName))
                 {
-                    RampingRate rr = new RampingRate(objName,resName);
+                    FlowConstraint rr = new FlowConstraint(objName,resName);
                     rampRatesInfo.Add(objName,rr);
                 }
                 int mon = int.Parse(row["month"].ToString());
-                rampRatesInfo[objName].ratesPerMonthTbl[mon].Rows.Add(new object[] { row["Type"].ToString(), 
+                rampRatesInfo[objName].flowPerMonthTbl[mon].Rows.Add(new object[] { row["Type"].ToString(), 
                                                                         double.Parse(row["exceedance_probability"].ToString()),
                                                                         double.Parse(row["flow_change"].ToString()) * 1.98347 }); // flow change converted from cfs to acre-feet per day
                 
             }
 
-            foreach (RampingRate rr in rampRatesInfo.Values)
+            foreach (FlowConstraint rr in rampRatesInfo.Values)
             {
                 //Calcualte the increase and decrease rates for the exceedance provided 
-                rr.CalculateRates(0.05, 0.05);
+                rr.CalculateRates(0.05,"increase", 0.05,"decrease");
 
 
             }
@@ -83,8 +86,8 @@ namespace MODSIMModeling.ReservoirOps
         {
             if (rampRatesInfo.ContainsKey(link.name))
             {
-                row["RampingRateUp"] = (rampRatesInfo[link.name].previousFlow / myModel.ScaleFactor) + rampRatesInfo[link.name].ratesPerMonth[currentMon]["increase"];
-                row["RampingRateDown"] = (rampRatesInfo[link.name].previousFlow / myModel.ScaleFactor) - rampRatesInfo[link.name].ratesPerMonth[currentMon]["decrease"];
+                row["RampingRateUp"] = (rampRatesInfo[link.name].previousFlow / myModel.ScaleFactor) + rampRatesInfo[link.name].flowsPerMonth[currentMon]["increase"];
+                row["RampingRateDown"] = (rampRatesInfo[link.name].previousFlow / myModel.ScaleFactor) - rampRatesInfo[link.name].flowsPerMonth[currentMon]["decrease"];
             }
         }
 
@@ -93,7 +96,7 @@ namespace MODSIMModeling.ReservoirOps
             if (myModel.mInfo.Iteration == 0)
             {
                 currentMon = myModel.TimeStepManager.Index2Date(myModel.mInfo.CurrentModelTimeStepIndex, TypeIndexes.ModelIndex).Month;
-                foreach (RampingRate rr in rampRatesInfo.Values)
+                foreach (FlowConstraint rr in rampRatesInfo.Values)
                 {
                     Link l = myModel.FindLink(rr.myID, silent: true);
                     if (l != null)
@@ -109,21 +112,21 @@ namespace MODSIMModeling.ReservoirOps
             //Skips the first time step to start the flow at a reasonable value.
             if (myModel.mInfo.CurrentModelTimeStepIndex > 2)
             {
-                foreach (RampingRate rr in rampRatesInfo.Values)
+                foreach (FlowConstraint rr in rampRatesInfo.Values)
                 {
                     //set bounds on lower flow link 
                     Link ll = myModel.FindLink(rr.myResID + "_RampLimitDw", silent: true);
                     if (ll != null)
                     {
                         //Uses the flow in the gage link for the calculation
-                        ll.mlInfo.hi = Math.Max(0,rr.previousFlow - (long)Math.Round(rr.ratesPerMonth[currentMon]["decrease"] * myModel.ScaleFactor, 0));
+                        ll.mlInfo.hi = Math.Max(0,rr.previousFlow - (long)Math.Round(rr.flowsPerMonth[currentMon]["decrease"] * myModel.ScaleFactor, 0));
                     }
                     //set bounds on up the links 
                     // uses the hi in the lower link (assume that is flowing full because of the cost)
                     Link lh = myModel.FindLink(rr.myResID + "_RampLimitUp", silent: true);
                     if (lh != null)
                     {
-                        lh.mlInfo.hi = Math.Max(0,rr.previousFlow + (long)Math.Round(rr.ratesPerMonth[currentMon]["increase"] * myModel.ScaleFactor, 0)
+                        lh.mlInfo.hi = Math.Max(0,rr.previousFlow + (long)Math.Round(rr.flowsPerMonth[currentMon]["increase"] * myModel.ScaleFactor, 0)
                                        - ll.mlInfo.hi);
                     }
 

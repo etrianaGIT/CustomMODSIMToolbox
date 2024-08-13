@@ -20,7 +20,7 @@ namespace MODSIMModeling.MainMODSIMRun
         public static RoutingUtils routeTool;
         public static ObservedFLowImport obsFlowImport;
         private static DemandProcessing procDemands;
-        public static ResOpsRelease resOps;
+        public static ResOpsReleaseRampRates resOps;
         //public static EconoModeling econoTool;
 
         static void Main(string[] CmdArgs)
@@ -63,7 +63,7 @@ namespace MODSIMModeling.MainMODSIMRun
             //obsFlowImport = new ObservedFLowImport(ref myModel);
             //obsFlowImport.ClearInflows();
 
-            resOps = new ResOpsRelease(ref myModel);
+            resOps = new ResOpsReleaseRampRates(ref myModel);
             resOps.messageOutRun += OnMessage;
             resOps.LoadRampingCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\RampingRates_ExceedanceProbabilities_ET.csv");
 
