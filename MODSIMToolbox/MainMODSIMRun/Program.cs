@@ -21,6 +21,7 @@ namespace MODSIMModeling.MainMODSIMRun
         public static ObservedFLowImport obsFlowImport;
         private static DemandProcessing procDemands;
         public static ResOpsReleaseRampRates resOps;
+        public static ResOpsReleaseMinMax resOpsMM;
         //public static EconoModeling econoTool;
 
         static void Main(string[] CmdArgs)
@@ -47,7 +48,7 @@ namespace MODSIMModeling.MainMODSIMRun
             //Process reservoir targets
             // resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
             //recalculated Fontanelle Reservoir parameters
-            resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv");
+            resTool.SetReservoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv");
 
             //obsFlowImport = new ObservedFLowImport(ref myModel);
             //obsFlowImport.ImportTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gage_search");
@@ -66,6 +67,10 @@ namespace MODSIMModeling.MainMODSIMRun
             resOps = new ResOpsReleaseRampRates(ref myModel);
             resOps.messageOutRun += OnMessage;
             resOps.LoadRampingCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\RampingRates_ExceedanceProbabilities_ET.csv");
+
+            resOpsMM = new ResOpsReleaseMinMax(ref myModel);
+            resOpsMM.messageOutRun += OnMessage;
+            resOpsMM.LoadExceedCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\MinMaxFlows_ExceedanceProbabilities_ET.csv");
 
             XYFileWriter.Write(myModel, myModel.fname);
 

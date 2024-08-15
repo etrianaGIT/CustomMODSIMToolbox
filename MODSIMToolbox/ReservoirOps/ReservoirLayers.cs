@@ -37,7 +37,7 @@ namespace MODSIMModeling.ReservoirOps
             //    XYFileWriter.Write(myModel, myModel.fname.Replace(".xy","Run.xy"));
         }
 
-        public void SetReservvoirTargets(string paramsCsv, bool onlyResWithMeasured = false)
+        public void SetReservoirTargets(string paramsCsv, bool onlyResWithMeasured = false)
         {
             //Read parameters in a datatable
             _DtParams = ReadCsv(paramsCsv);
@@ -74,8 +74,8 @@ namespace MODSIMModeling.ReservoirOps
                 //Set the lower layer placeholder
                 res.m.resBalance = new ResBalance();
                 res.m.resBalance.PercentBasedOnMaxCapacity = false;
-                res.m.resBalance.incrPriorities = new long[] { -3000 + res.number, -1000 + res.number };
-                res.m.resBalance.targetPercentages = new double[] { 20, 100 };
+                res.m.resBalance.incrPriorities = new long[] { -3000 + res.number, -2000 + res.number, - 1000 + res.number };
+                res.m.resBalance.targetPercentages = new double[] { 20, 50, 100 };
                 if(res.m.resOutLink != null)
                     res.m.resOutLink.m.cost = 1;
                 else
@@ -126,6 +126,7 @@ namespace MODSIMModeling.ReservoirOps
             // Setup user output variable to display the cost in reservoirs.
             modsimoutputsupport = myModel.OutputSupportClass as ModelOutputSupport;
             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "Layer_Target", false, true, "Volume");
+            modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "MidLayer_Target", false, true, "Volume");
             modsimoutputsupport.AddCurrentUserReservoir_STOROutput += AddMyResOutput;
         }
 
@@ -140,6 +141,10 @@ namespace MODSIMModeling.ReservoirOps
                     tgtLink = node.mnInfo.balanceLinks.link;
                 }
                 row["Layer_Target"] = tgtLink.mlInfo.hi/myModel.ScaleFactor;
+                if(node.mnInfo.balanceLinks.next != null)
+                {
+                    row["MidLayer_Target"] = (tgtLink.mlInfo.hi + node.mnInfo.balanceLinks.next.link.mlInfo.hi) / myModel.ScaleFactor;
+                }
             }
         }
 
@@ -155,10 +160,13 @@ namespace MODSIMModeling.ReservoirOps
                 double maxNormal = GetMaxNormal(res, weekNumber);
 
                 DataTable dt = res.m.adaTargetsM.dataTable;
-                
-                if(dt.Rows.Count>0)
+
+                if (dt.Rows.Count > 0)
+                {
                     //Set the lower layer percent (as a function of the max normal = target)
-                    res.m.resBalance.targetPercentages[0] =  (double) (minNormal/maxNormal*100);
+                    res.m.resBalance.targetPercentages[0] = (double)(minNormal / maxNormal * 100);
+                    res.m.resBalance.targetPercentages[1] = (double)(((minNormal + maxNormal)/2) / maxNormal * 100);
+                }
 
             }
         }
