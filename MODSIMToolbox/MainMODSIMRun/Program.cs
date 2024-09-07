@@ -66,11 +66,11 @@ namespace MODSIMModeling.MainMODSIMRun
 
             resOps = new ResOpsReleaseRampRates(ref myModel);
             resOps.messageOutRun += OnMessage;
-            resOps.LoadRampingCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\RampingRates_ExceedanceProbabilities_ET.csv");
+            resOps.LoadRampingCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\RampingRates_ExceedanceProbabilities_Aug22.csv");
 
             resOpsMM = new ResOpsReleaseMinMax(ref myModel);
             resOpsMM.messageOutRun += OnMessage;
-            resOpsMM.LoadExceedCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\MinMaxFlows_ExceedanceProbabilities_ET.csv");
+            resOpsMM.LoadExceedCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\MinMaxFlows_ExceedanceProbabilities_Aug22.csv");
 
             XYFileWriter.Write(myModel, myModel.fname);
 

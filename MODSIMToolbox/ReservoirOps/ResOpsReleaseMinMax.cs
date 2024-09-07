@@ -37,7 +37,6 @@ namespace MODSIMModeling.ReservoirOps
 			m_Model.End += OnFinished;
 			
 			myModel = m_Model;
-            
         }
 
         public void LoadExceedCurves(string ratesCsv)

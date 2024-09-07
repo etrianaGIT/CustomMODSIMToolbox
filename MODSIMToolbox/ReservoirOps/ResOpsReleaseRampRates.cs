@@ -49,7 +49,7 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (DataRow row in _rampRates.Rows)
             {
-                string objName = "0" + row["poi_id"].ToString();
+                string objName = row["poi_id"].ToString().Trim('\"');// "0" + row["poi_id"].ToString();
                 string resName = row["reservoir_name"].ToString();
                 if (!rampRatesInfo.ContainsKey(objName))
                 {
@@ -59,7 +59,7 @@ namespace MODSIMModeling.ReservoirOps
                 int mon = int.Parse(row["month"].ToString());
                 rampRatesInfo[objName].flowPerMonthTbl[mon].Rows.Add(new object[] { row["Type"].ToString(), 
                                                                         double.Parse(row["exceedance_probability"].ToString()),
-                                                                        double.Parse(row["flow_change"].ToString()) * 1.98347 }); // flow change converted from cfs to acre-feet per day
+                                                                        double.Parse(row["flow_cfs"].ToString()) * 1.98347 }); // flow change converted from cfs to acre-feet per day
                 
             }
 

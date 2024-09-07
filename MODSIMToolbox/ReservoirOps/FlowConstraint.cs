@@ -56,6 +56,8 @@ namespace MODSIMModeling.ReservoirOps
 
         public void CalculateRates(double increaseProb, string increaseKey, double decreaseProb, string decreaseKey)
         {
+            Console.WriteLine($"\t[Flow Constraint] Using {increaseKey} at {increaseProb} exceedance.");
+            Console.WriteLine($"\t[Flow Constraint] Using {decreaseKey} at {decreaseProb} exceedance.");
             flowsPerMonth = new Dictionary<int, Dictionary<string, double>>();
             for (int i = 1; i <= 12; i++)
             {
