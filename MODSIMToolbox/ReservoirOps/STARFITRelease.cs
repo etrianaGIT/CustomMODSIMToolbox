@@ -138,7 +138,7 @@ namespace MODSIMModeling.ReservoirOps
             double capacity = res.m.max_volume * 1.0e6; // Convert MCM to m³
 
            
-            double inflow_mean = 1.0e6; // 
+            double inflow_mean = 1.0e6; // filled with a random value for now - this should come from the links i think
             double inflow = GetResInflow(res); // Current inflow in m³/s
 
             double omega = 1.0 / 52.0;
