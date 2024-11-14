@@ -21,7 +21,7 @@ namespace MODSIMModeling.ReservoirOps
 
         public STARFITRelease(ref Model m_Model)
         {
-            m_Model.Init += OnInitialize;
+            //m_Model.Init += OnInitialize;
             m_Model.IterBottom += OnIterationBottom;
             m_Model.IterTop += OnIterationTop;
             m_Model.Converged += OnIterationConverge;
@@ -44,15 +44,15 @@ namespace MODSIMModeling.ReservoirOps
             _DtParams = ReadCsv(paramsCsv);
         }
 
-        private void OnInitialize()
+       /* private void OnInitialize() // comment out because we don't need this in both layers...is there any additional output we want to include with the release?
         {
             modsimoutputsupport = myModel.OutputSupportClass as ModelOutputSupport;
             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "Layer_Target", false, true, "Volume");
             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "MidLayer_Target", false, true, "Volume");
             modsimoutputsupport.AddCurrentUserReservoir_STOROutput += AddMyResOutput;
-        }
+        }*/
 
-        private void AddMyResOutput(Node node, DataRow row)
+       /* private void AddMyResOutput(Node node, DataRow row) // can commment this out, unless if we want to add any custom output to the MODSIM database 
         {
             if (node.mnInfo.balanceLinks != null)
             {
@@ -63,7 +63,7 @@ namespace MODSIMModeling.ReservoirOps
                     row["MidLayer_Target"] = (tgtLink.mlInfo.hi + node.mnInfo.balanceLinks.next.link.mlInfo.hi) / myModel.ScaleFactor;
                 }
             }
-        }
+        }*/
 
         private void OnIterationTop()
         {
@@ -77,11 +77,11 @@ namespace MODSIMModeling.ReservoirOps
                 double maxNormal = GetMaxNormal(res, weekNumber);
 
                 DataTable dt = res.m.adaTargetsM.dataTable;
-                if (dt.Rows.Count > 0)
+              /*  if (dt.Rows.Count > 0) // can commment out
                 {
                     res.m.resBalance.targetPercentages[0] = (double)(minNormal / maxNormal * 100);
                     res.m.resBalance.targetPercentages[1] = (double)(((minNormal + maxNormal) / 2) / maxNormal * 100);
-                }
+                }*/
             }
         }
 
@@ -138,7 +138,7 @@ namespace MODSIMModeling.ReservoirOps
             double capacity = res.m.max_volume * 1.0e6; // Convert MCM to m³
 
            
-            double inflow_mean = 1.0e6; // filled with a random value for now - this should come from the links i think
+            double inflow_mean = double.Parse(dr[0]["Obs_MEANFLOW_CUMECS"].ToString()); // average inflow from csv 
             double inflow = GetResInflow(res); // Current inflow in m³/s
 
             double omega = 1.0 / 52.0;

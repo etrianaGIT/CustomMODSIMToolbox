@@ -17,6 +17,7 @@ namespace MODSIMModeling.MainMODSIMRun
         public static Model myModel = new Model();
         // declaring the plug-ins
         public static ReservoirLayers resTool;
+        public static STARFITRelease starfit;
         public static RoutingUtils routeTool;
         public static ObservedFLowImport obsFlowImport;
         private static DemandProcessing procDemands;
@@ -66,6 +67,15 @@ namespace MODSIMModeling.MainMODSIMRun
                 //Set the priority of the node to 0
                 res.m.priority[0] = 5000;
             }
+
+
+            starfit = new StarFitRelease(ref myModel);
+            starfit.messageOutRun += OnMessage;
+            
+            // Load STARfit parameters
+
+            string paramsCsvPath = "C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv";
+            starfit.LoadStarFitParams(paramsCsvPath);
 
             ////--------------------------------------------
             //obsFlowImport = new ObservedFLowImport(ref myModel);
