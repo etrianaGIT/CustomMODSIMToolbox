@@ -39,7 +39,7 @@ namespace MODSIMModeling.ReservoirOps
 			myModel = m_Model;
         }
 
-        public void LoadExceedCurves(string ratesCsv)
+        public void LoadExceedCurves(string ratesCsv, double maxProb, double minProb)
         {
             //Read parameters into the ramping rate objects
             DataTable _MinMaxRates;
@@ -49,23 +49,31 @@ namespace MODSIMModeling.ReservoirOps
             foreach (DataRow row in _MinMaxRates.Rows)
             {
                 string objName = row["poi_id"].ToString().Trim('\"');
-                string resName = row["reservoir_name"].ToString();
+                string[] resNames = row["reservoir_name"].ToString().Split('|');
                 if (!flowThresholdsInfo.ContainsKey(objName))
                 {
-                    FlowConstraint rr = new FlowConstraint(objName,resName);
-                    flowThresholdsInfo.Add(objName,rr);
-                }
-                int mon = int.Parse(row["month"].ToString());
-                flowThresholdsInfo[objName].flowPerMonthTbl[mon].Rows.Add(new object[] { row["type"].ToString(), 
+                    foreach (string resName in resNames)
+                    {
+                        if (!flowThresholdsInfo.ContainsKey(objName + "_" + resName))
+                        {
+                            FlowConstraint rr = new FlowConstraint(objName, resName);
+                            flowThresholdsInfo.Add(objName + "_" + resName, rr);
+                        }
+
+                        int mon = int.Parse(row["month"].ToString());
+                        flowThresholdsInfo[objName + "_" + resName].flowPerMonthTbl[mon].Rows.Add(new object[] { row["type"].ToString(),
                                                                         double.Parse(row["exceedance_probability"].ToString()),
                                                                         double.Parse(row["flow_cfs"].ToString()) * 1.98347 }); // flow change converted from cfs to acre-feet per day
+
+                    }
+                }
                 
             }
 
             foreach (FlowConstraint rr in flowThresholdsInfo.Values)
             {
                 //Calcualte the increase and decrease rates for the exceedance provided 
-                rr.CalculateRates(0.15,"max", 0.85,"min");
+                rr.CalculateRates(maxProb,"max", minProb,"min");
 
             }
 
@@ -82,11 +90,25 @@ namespace MODSIMModeling.ReservoirOps
 
         private void AddMyLnkOutput(Link link, DataRow row)
         {
-            if (flowThresholdsInfo.ContainsKey(link.name))
+            //if (flowThresholdsInfo.ContainsKey(link.name))
+            //{
+            FlowConstraint nxLink = MnMxInfoContaining(link.name);
+            if (nxLink != null)
             {
-                row["MaxThreshold"] = flowThresholdsInfo[link.name].flowsPerMonth[currentMon]["max"];
-                row["MinThreshold"] = flowThresholdsInfo[link.name].flowsPerMonth[currentMon]["min"];
+                row["MaxThreshold"] = nxLink.flowsPerMonth[currentMon]["max"];
+                row["MinThreshold"] = nxLink.flowsPerMonth[currentMon]["min"];
             }
+        }
+
+        private FlowConstraint MnMxInfoContaining(string name)
+        {
+            foreach (string key in flowThresholdsInfo.Keys)
+            {
+                FlowConstraint rr = flowThresholdsInfo[key];
+                if (rr.myID == name)
+                    return rr;
+            }
+            return null;
         }
 
         private  void OnIterationTop()

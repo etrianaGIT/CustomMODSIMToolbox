@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Csu.Modsim.ModsimModel;
+using Csu.Modsim.NetworkUtils;
+using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
-using Csu.Modsim.ModsimIO;
-using Csu.Modsim.ModsimModel;
-using Csu.Modsim.NetworkUtils;
 
 namespace MODSIMModeling.ReservoirOps
 {
@@ -23,15 +19,15 @@ namespace MODSIMModeling.ReservoirOps
         private ModelOutputSupport modsimoutputsupport;
 
         public ReservoirLayers(ref Model m_Model)
-		{
-			m_Model.Init += OnInitialize;
-			m_Model.IterBottom += OnIterationBottom;
-			m_Model.IterTop += OnIterationTop;
-			m_Model.Converged += OnIterationConverge;
-			m_Model.End += OnFinished;
-			
-			myModel = m_Model;
-            
+        {
+            m_Model.Init += OnInitialize;
+            m_Model.IterBottom += OnIterationBottom;
+            m_Model.IterTop += OnIterationTop;
+            m_Model.Converged += OnIterationConverge;
+            m_Model.End += OnFinished;
+
+            myModel = m_Model;
+
             ////Save changes to the XY (run)
             //if(saveXYRun)
             //    XYFileWriter.Write(myModel, myModel.fname.Replace(".xy","Run.xy"));
@@ -56,6 +52,7 @@ namespace MODSIMModeling.ReservoirOps
                 if (onlyResWithMeasured && dt.Rows.Count == 0)
                     continue;
                 res.m.adaTargetsM.Interpolate = true;
+                res.m.adaTargetsM.VariesByYear = true;
                 res.m.adaTargetsM.units = ModsimUnits.FromLabel("MCM");
                 dt.Rows.Clear();
                 foreach (DataRow dr in myModel.TimeStepManager.timeStepsList.Rows)
@@ -67,16 +64,16 @@ namespace MODSIMModeling.ReservoirOps
 
                     newdr[0] = dr["EndDate"].ToString();
                     newdr[1] = GetMaxNormal(res, weekNumber);// * myModel.ScaleFactor; // * 1233.48 / 1000000
-                    dt.Rows.Add(newdr); 
+                    dt.Rows.Add(newdr);
 
-                    
+
                 }
                 //Set the lower layer placeholder
                 res.m.resBalance = new ResBalance();
                 res.m.resBalance.PercentBasedOnMaxCapacity = false;
-                res.m.resBalance.incrPriorities = new long[] { -3000 + res.number, -2000 + res.number, - 1000 + res.number };
+                res.m.resBalance.incrPriorities = new long[] { -20000 + res.number, -10000 + res.number, -5000 + res.number };
                 res.m.resBalance.targetPercentages = new double[] { 20, 50, 100 };
-                if(res.m.resOutLink != null)
+                if (res.m.resOutLink != null)
                     res.m.resOutLink.m.cost = 1;
                 else
                     Console.WriteLine("No release link for reservoir " + res.name + " defined.");
@@ -121,8 +118,8 @@ namespace MODSIMModeling.ReservoirOps
             return value;
         }
 
-        private  void OnInitialize()
-		{
+        private void OnInitialize()
+        {
             // Setup user output variable to display the cost in reservoirs.
             modsimoutputsupport = myModel.OutputSupportClass as ModelOutputSupport;
             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "Layer_Target", false, true, "Volume");
@@ -140,17 +137,17 @@ namespace MODSIMModeling.ReservoirOps
                     //Assumes that a single layer is used in the reservoir
                     tgtLink = node.mnInfo.balanceLinks.link;
                 }
-                row["Layer_Target"] = tgtLink.mlInfo.hi/myModel.ScaleFactor;
-                if(node.mnInfo.balanceLinks.next != null)
+                row["Layer_Target"] = tgtLink.mlInfo.hi / myModel.ScaleFactor;
+                if (node.mnInfo.balanceLinks.next != null)
                 {
                     row["MidLayer_Target"] = (tgtLink.mlInfo.hi + node.mnInfo.balanceLinks.next.link.mlInfo.hi) / myModel.ScaleFactor;
                 }
             }
         }
 
-        private  void OnIterationTop()
-		{
-            DateTime dtime = myModel.TimeStepManager.Index2Date(myModel.mInfo.CurrentModelTimeStepIndex,TypeIndexes.ModelIndex);
+        private void OnIterationTop()
+        {
+            DateTime dtime = myModel.TimeStepManager.Index2Date(myModel.mInfo.CurrentModelTimeStepIndex, TypeIndexes.ModelIndex);
             Calendar calendar = CultureInfo.InvariantCulture.Calendar;
             int weekNumber = calendar.GetWeekOfYear(dtime, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
 
@@ -165,7 +162,7 @@ namespace MODSIMModeling.ReservoirOps
                 {
                     //Set the lower layer percent (as a function of the max normal = target)
                     res.m.resBalance.targetPercentages[0] = (double)(minNormal / maxNormal * 100);
-                    res.m.resBalance.targetPercentages[1] = (double)(((minNormal + maxNormal)/2) / maxNormal * 100);
+                    res.m.resBalance.targetPercentages[1] = (double)(((minNormal + maxNormal) / 2) / maxNormal * 100);
                 }
 
             }
@@ -185,11 +182,11 @@ namespace MODSIMModeling.ReservoirOps
 
             if (dr.Length > 0)
             {
-                res.description = "ID:"+dr[0]["GRanD_ID"].ToString();
+                res.description = "ID:" + dr[0]["GRanD_ID"].ToString();
                 double upper_max = double.MaxValue;
                 if (!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
                     upper_max = double.Parse(dr[0]["NORhi_max"].ToString());
-                double upper_min = !dr[0]["NORhi_min"].ToString().Contains("Infinity") ? dr[0].Field<double>("NORhi_min") : double.MinValue;
+                double upper_min = !dr[0]["NORhi_min"].ToString().Contains("Infinity") & !dr[0]["NORhi_min"].ToString().Contains("#NAME?") ? double.Parse(dr[0]["NORhi_min"].ToString()) : double.MinValue;
                 double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString());
                 double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString());
                 double omega = 1.0 / 52.0;
@@ -214,12 +211,12 @@ namespace MODSIMModeling.ReservoirOps
                 double lower_max = double.MaxValue;
                 if (dr[0]["NORhi_max"].ToString() != "Infinity")
                     lower_max = double.Parse(dr[0]["NORlo_max"].ToString());
-                
-                double lower_min = dr[0]["NORlo_min"].ToString() != "-Infinity" ? dr[0].Field<double>("NORlo_min") : double.MinValue;
+
+                double lower_min = dr[0]["NORlo_min"].ToString() != "" & dr[0]["NORlo_min"].ToString() != "-Infinity" ? dr[0].Field<double>("NORlo_min") : double.MinValue;
                 double lower_mu = double.Parse(dr[0]["NORlo_mu"].ToString());
-                double lower_alpha = double.Parse(dr[0]["NORlo_alpha"].ToString()); 
+                double lower_alpha = double.Parse(dr[0]["NORlo_alpha"].ToString());
                 double omega = 1.0 / 52.0;
-                double lower_beta = double.Parse(dr[0]["NORlo_beta"].ToString()); 
+                double lower_beta = double.Parse(dr[0]["NORlo_beta"].ToString());
                 minNormal = Math.Min(lower_max,
                                         Math.Max(lower_min,
                                                lower_mu +
@@ -227,20 +224,20 @@ namespace MODSIMModeling.ReservoirOps
                 lower_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
             }
             long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
-            return minNormal /100 * maxMCM;
+            return minNormal / 100 * maxMCM;
         }
 
-        private  void OnIterationBottom()
-		{
+        private void OnIterationBottom()
+        {
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
                 //min/max release
                 long resInflow = GetResInflow(res);
                 if (res.m.resBypassL != null)
                     resInflow += res.m.resBypassL.mlInfo.flow;
-                if(res.m.resOutLink!=null)
+                if (res.m.resOutLink != null)
                     //Using the link downstream to capture both bypass and release
-                    res.m.resOutLink.to.OutflowLinks.link.mlInfo.hi = (long) Math.Round((1D + GetMaxReleaseParameter(res)) * resInflow,0);
+                    res.m.resOutLink.to.OutflowLinks.link.mlInfo.hi = (long)Math.Round((1D + GetMaxReleaseParameter(res)) * resInflow, 0);
             }
         }
 
@@ -250,7 +247,7 @@ namespace MODSIMModeling.ReservoirOps
             double maxRelease = myModel.defaultMaxCap;
             if (dr.Length > 0)
             {
-                maxRelease = !dr[0]["Release_max"].ToString().Contains("Infinity") ? dr[0].Field<double>("Release_max"):maxRelease;                
+                maxRelease = !dr[0]["Release_max"].ToString().Contains("Infinity") ? dr[0].Field<double>("Release_max") : maxRelease;
             }
             return maxRelease;
         }
@@ -259,22 +256,22 @@ namespace MODSIMModeling.ReservoirOps
         {
             long sumFlow = 0;
             LinkList ll = res.InflowLinks;
-            while (ll!=null)
+            while (ll != null)
             {
                 sumFlow += ll.link.mlInfo.flow;
                 ll = ll.next;
             }
-            return sumFlow; 
+            return sumFlow;
         }
 
-        private  void OnIterationConverge()
-		{
-			
-		}
+        private void OnIterationConverge()
+        {
 
-		private  void OnFinished()
-		{
-		}
+        }
+
+        private void OnFinished()
+        {
+        }
 
         private DataTable ReadCsv(string filePath)
         {

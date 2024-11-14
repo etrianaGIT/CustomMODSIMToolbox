@@ -80,6 +80,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CostStructure.cs" />
     <Compile Include="DemandProcessing.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ObservedFlow.cs" />

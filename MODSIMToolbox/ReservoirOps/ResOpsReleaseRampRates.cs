@@ -40,7 +40,7 @@ namespace MODSIMModeling.ReservoirOps
             
         }
 
-        public void LoadRampingCurves(string ratesCsv)
+        public void LoadRampingCurves(string ratesCsv, double increaseProb,double decreaseProb)
         {
             //Read parameters into the ramping rate objects
             DataTable _rampRates;
@@ -50,23 +50,27 @@ namespace MODSIMModeling.ReservoirOps
             foreach (DataRow row in _rampRates.Rows)
             {
                 string objName = row["poi_id"].ToString().Trim('\"');// "0" + row["poi_id"].ToString();
-                string resName = row["reservoir_name"].ToString();
-                if (!rampRatesInfo.ContainsKey(objName))
+                string[] resNames = row["reservoir_name"].ToString().Split('|');
+
+                foreach (string resName in resNames)
                 {
-                    FlowConstraint rr = new FlowConstraint(objName,resName);
-                    rampRatesInfo.Add(objName,rr);
-                }
-                int mon = int.Parse(row["month"].ToString());
-                rampRatesInfo[objName].flowPerMonthTbl[mon].Rows.Add(new object[] { row["Type"].ToString(), 
+                    if (!rampRatesInfo.ContainsKey(objName + "_" + resName))
+                    {
+                        FlowConstraint rr = new FlowConstraint(objName, resName);
+                        rampRatesInfo.Add(objName + "_" + resName, rr);
+                    }
+
+                    int mon = int.Parse(row["month"].ToString());
+                    rampRatesInfo[objName + "_" + resName].flowPerMonthTbl[mon].Rows.Add(new object[] { row["Type"].ToString(),
                                                                         double.Parse(row["exceedance_probability"].ToString()),
                                                                         double.Parse(row["flow_cfs"].ToString()) * 1.98347 }); // flow change converted from cfs to acre-feet per day
-                
+                }
             }
 
             foreach (FlowConstraint rr in rampRatesInfo.Values)
             {
                 //Calcualte the increase and decrease rates for the exceedance provided 
-                rr.CalculateRates(0.05,"increase", 0.05,"decrease");
+                rr.CalculateRates(increaseProb, "increase", increaseProb, "decrease");
 
 
             }
@@ -84,11 +88,23 @@ namespace MODSIMModeling.ReservoirOps
 
         private void AddMyLnkOutput(Link link, DataRow row)
         {
-            if (rampRatesInfo.ContainsKey(link.name))
+            FlowConstraint rrLink = RampRateInfoContaining(link.name);
+            if (rrLink!=null)//rampRatesInfo.ContainsKey(link.name))
             {
-                row["RampingRateUp"] = (rampRatesInfo[link.name].previousFlow / myModel.ScaleFactor) + rampRatesInfo[link.name].flowsPerMonth[currentMon]["increase"];
-                row["RampingRateDown"] = (rampRatesInfo[link.name].previousFlow / myModel.ScaleFactor) - rampRatesInfo[link.name].flowsPerMonth[currentMon]["decrease"];
+                row["RampingRateUp"] = (rrLink.previousFlow / myModel.ScaleFactor) + rrLink.flowsPerMonth[currentMon]["increase"];
+                row["RampingRateDown"] = (rrLink.previousFlow / myModel.ScaleFactor) - rrLink.flowsPerMonth[currentMon]["decrease"];
             }
+        }
+
+        private FlowConstraint RampRateInfoContaining(string name)
+        {
+            foreach (string key in rampRatesInfo.Keys)
+            {
+                FlowConstraint rr = rampRatesInfo[key];
+                if (rr.myID == name)
+                    return rr;
+            }
+            return null;
         }
 
         private  void OnIterationTop()
