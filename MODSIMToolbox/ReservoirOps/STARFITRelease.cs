@@ -3,9 +3,11 @@ using System.Data;
 using System.Data.OleDb;
 using System.Globalization;
 using System.IO;
+using System.Runtime.Remoting.Messaging;
 using Csu.Modsim.ModsimIO;
 using Csu.Modsim.ModsimModel;
 using Csu.Modsim.NetworkUtils;
+using MODSIMModeling.ReservoirOps.StarFit;
 
 namespace MODSIMModeling.ReservoirOps
 {
@@ -14,10 +16,11 @@ namespace MODSIMModeling.ReservoirOps
         public delegate void ProcessMessage(string msg);  // Delegate
 
         public Model myModel;
-        private DataTable _DtParams;
+        //private DataTable _DtParams;
 
         public event ProcessMessage messageOutRun;     // Event
         private ModelOutputSupport modsimoutputsupport;
+        private StarFitUtils _MyStarFitUtils;
 
         public STARFITRelease(ref Model m_Model)
         {
@@ -28,6 +31,10 @@ namespace MODSIMModeling.ReservoirOps
             m_Model.End += OnFinished;
 
             myModel = m_Model;
+
+            _MyStarFitUtils = new StarFitUtils();
+            _MyStarFitUtils.messageOut += OnMessage;
+
         }
 
         private void OnFinished()
@@ -41,29 +48,36 @@ namespace MODSIMModeling.ReservoirOps
         public void LoadSTARFITParameters(string paramsCsv)
         {
             // Read parameters into a DataTable
-            _DtParams = ReadCsv(paramsCsv);
+            //_DtParams = ReadCsv(paramsCsv);
+            _MyStarFitUtils.LoadParameters(paramsCsv);
+
         }
 
-       /* private void OnInitialize() // comment out because we don't need this in both layers...is there any additional output we want to include with the release?
+        private void OnMessage(string msg)
         {
-            modsimoutputsupport = myModel.OutputSupportClass as ModelOutputSupport;
-            modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "Layer_Target", false, true, "Volume");
-            modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "MidLayer_Target", false, true, "Volume");
-            modsimoutputsupport.AddCurrentUserReservoir_STOROutput += AddMyResOutput;
-        }*/
+            messageOutRun(msg);
+        }
 
-       /* private void AddMyResOutput(Node node, DataRow row) // can commment this out, unless if we want to add any custom output to the MODSIM database 
-        {
-            if (node.mnInfo.balanceLinks != null)
-            {
-                Link tgtLink = node.mnInfo.balanceLinks.link;
-                row["Layer_Target"] = tgtLink.mlInfo.hi / myModel.ScaleFactor;
-                if (node.mnInfo.balanceLinks.next != null)
-                {
-                    row["MidLayer_Target"] = (tgtLink.mlInfo.hi + node.mnInfo.balanceLinks.next.link.mlInfo.hi) / myModel.ScaleFactor;
-                }
-            }
-        }*/
+        /* private void OnInitialize() // comment out because we don't need this in both layers...is there any additional output we want to include with the release?
+         {
+             modsimoutputsupport = myModel.OutputSupportClass as ModelOutputSupport;
+             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "Layer_Target", false, true, "Volume");
+             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "MidLayer_Target", false, true, "Volume");
+             modsimoutputsupport.AddCurrentUserReservoir_STOROutput += AddMyResOutput;
+         }*/
+
+        /* private void AddMyResOutput(Node node, DataRow row) // can commment this out, unless if we want to add any custom output to the MODSIM database 
+         {
+             if (node.mnInfo.balanceLinks != null)
+             {
+                 Link tgtLink = node.mnInfo.balanceLinks.link;
+                 row["Layer_Target"] = tgtLink.mlInfo.hi / myModel.ScaleFactor;
+                 if (node.mnInfo.balanceLinks.next != null)
+                 {
+                     row["MidLayer_Target"] = (tgtLink.mlInfo.hi + node.mnInfo.balanceLinks.next.link.mlInfo.hi) / myModel.ScaleFactor;
+                 }
+             }
+         }*/
 
         private void OnIterationTop()
         {
@@ -73,10 +87,12 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
-                double minNormal = GetMinNormal(res, weekNumber);
-                double maxNormal = GetMaxNormal(res, weekNumber);
+                long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
 
-                DataTable dt = res.m.adaTargetsM.dataTable;
+                double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber,maxMCM);
+                double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber, maxMCM);
+
+                //DataTable dt = res.m.adaTargetsM.dataTable;
               /*  if (dt.Rows.Count > 0) // can commment out
                 {
                     res.m.resBalance.targetPercentages[0] = (double)(minNormal / maxNormal * 100);
@@ -93,59 +109,75 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
-                double release = ComputeSTARFITRelease(res, weekNumber);
-                if (res.m.resOutLink != null)
+                Link sfLink = myModel.FindLink(res.name + "_StarfitRel",myModel.mInfo.CurrentModelTimeStepIndex>0);
+                if (sfLink != null)
                 {
-                    res.m.resOutLink.to.OutflowLinks.link.mlInfo.hi = (long)Math.Round(release);
+                    double release = ComputeSTARFITRelease(res, weekNumber);
+                    if (release >= 0)
+                    {
+                        sfLink.mlInfo.hi = (long)Math.Round(release);
+                    }
+                    else
+                        sfLink.mlInfo.hi = 0;
                 }
             }
         }
 
         private double ComputeSTARFITRelease(Node res, int weekNumber)
         {
-            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+            //DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
 
-            if (dr.Length == 0)
-            {
-                Console.WriteLine($"No parameter data found for reservoir: {res.name}");
-                return 0;
-            }
+            //if (dr.Length == 0)
+            //{
+            //    Console.WriteLine($"No parameter data found for reservoir: {res.name}");
+            //    return 0;
+            //}
 
             // Retrieve parameters from the DataRow
-            double upper_min = double.Parse(dr[0]["NORhi_min"].ToString());
-            double upper_max = double.Parse(dr[0]["NORhi_max"].ToString());
-            double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString());
-            double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString());
-            double upper_beta = double.Parse(dr[0]["NORhi_beta"].ToString());
+            //double upper_min = _MyStarFitUtils.GetVarValue(res, "NORhi_min"); //double.Parse(dr[0]["NORhi_min"].ToString());
+            //double upper_max = _MyStarFitUtils.GetVarValue(res, "NORhi_max");
+            //double upper_mu = _MyStarFitUtils.GetVarValue(res, "NORhi_mu");
+            //double upper_alpha = _MyStarFitUtils.GetVarValue(res, "NORhi_alpha");
+            //double upper_beta = _MyStarFitUtils.GetVarValue(res, "NORhi_beta");
 
-            double lower_min = double.Parse(dr[0]["NORlo_min"].ToString());
-            double lower_max = double.Parse(dr[0]["NORlo_max"].ToString());
-            double lower_mu = double.Parse(dr[0]["NORlo_mu"].ToString());
-            double lower_alpha = double.Parse(dr[0]["NORlo_alpha"].ToString());
-            double lower_beta = double.Parse(dr[0]["NORlo_beta"].ToString());
+            //double lower_min = _MyStarFitUtils.GetVarValue(res, "NORlo_min");
+            //double lower_max = _MyStarFitUtils.GetVarValue(res, "NORlo_max");
+            //double lower_mu = _MyStarFitUtils.GetVarValue(res, "NORlo_mu");
+            //double lower_alpha = _MyStarFitUtils.GetVarValue(res, "NORlo_alpha");
+            //double lower_beta = _MyStarFitUtils.GetVarValue(res, "NORlo_beta");
 
-            double release_alpha1 = double.Parse(dr[0]["Release_alpha1"].ToString());
-            double release_alpha2 = double.Parse(dr[0]["Release_alpha2"].ToString());
-            double release_beta1 = double.Parse(dr[0]["Release_beta1"].ToString());
-            double release_beta2 = double.Parse(dr[0]["Release_beta2"].ToString());
-            double release_c = double.Parse(dr[0]["Release_c"].ToString());
-            double release_max = double.Parse(dr[0]["Release_max"].ToString());
-            double release_min = double.Parse(dr[0]["Release_min"].ToString());
-            double release_p1 = double.Parse(dr[0]["Release_p1"].ToString());
-            double release_p2 = double.Parse(dr[0]["Release_p2"].ToString());
+            double release_alpha1 = _MyStarFitUtils.GetVarValue(res, "Release_alpha1");
+            double release_alpha2 = _MyStarFitUtils.GetVarValue(res, "Release_alpha2");
+            double release_beta1 = _MyStarFitUtils.GetVarValue(res, "Release_beta1");
+            double release_beta2 = _MyStarFitUtils.GetVarValue(res, "Release_beta2");
+            double release_c = _MyStarFitUtils.GetVarValue(res, "Release_c");
+            double release_max = _MyStarFitUtils.GetVarValue(res, "Release_max");
+            double release_min = _MyStarFitUtils.GetVarValue(res, "Release_min");
+            double release_p1 = _MyStarFitUtils.GetVarValue(res, "Release_p1");
+            double release_p2 = _MyStarFitUtils.GetVarValue(res, "Release_p2");
 
-            double storage = res.m.starting_volume * 1.0e6; // Convert MCM to m³
-            double capacity = res.m.max_volume * 1.0e6; // Convert MCM to m³
+            double storage = (double) res.mnInfo.start;
+            // Convert to m³
+            storage = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(storage, res.m.reservoir_units), ModsimUnits.FromLabel("CM"))); 
+            double capacity = res.m.max_volume; 
+            // Convert to m³
+            capacity = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(capacity, res.m.reservoir_units), ModsimUnits.FromLabel("CM")));
 
-           
-            double inflow_mean = double.Parse(dr[0]["Obs_MEANFLOW_CUMECS"].ToString()); // average inflow from csv 
-            double inflow = GetResInflow(res); // Current inflow in m³/s
+            double inflow_mean = _MyStarFitUtils.GetVarValue(res, "Obs_MEANFLOW_CUMECS"); // average inflow from csv 
+            
+            //if (_MyStarFitUtils.IsDataIssues(res.name))
+            //    return 0;
+
+            double inflow = _MyStarFitUtils.GetResInflow(res); // Current inflow in MODSIM units
+            // convert to m³/s
+            inflow = Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
 
             double omega = 1.0 / 52.0;
 
             // Calculate maxNormal and minNormal using sine and cosine functions
-            double maxNormal = GetMaxNormal(res, weekNumber);
-            double minNormal = GetMinNormal(res, weekNumber);
+            long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+            double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber,maxMCM);
+            double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber, maxMCM);
 
             // Calculate forecasted and mean weekly volume
             double forecasted_weekly_volume = 7.0 * inflow * 24.0 * 60.0 * 60.0;
@@ -190,87 +222,87 @@ namespace MODSIMModeling.ReservoirOps
             return release;
         }
 
-        private double GetMaxNormal(Node res, int weekNumber)
-        {
-            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
-            double maxNormal = 1.0;
+        //private double GetMaxNormal(Node res, int weekNumber)
+        //{
+        //    DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+        //    double maxNormal = 1.0;
 
-            if (dr.Length > 0)
-            {
-                res.description = "ID:" + dr[0]["GRanD_ID"].ToString();
-                double upper_max = double.MaxValue;
-                if (!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
-                    upper_max = double.Parse(dr[0]["NORhi_max"].ToString());
-                double upper_min = !dr[0]["NORhi_min"].ToString().Contains("Infinity") ? dr[0].Field<double>("NORhi_min") : double.MinValue;
-                double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString());
-                double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString());
-                double omega = 1.0 / 52.0;
-                double upper_beta = double.Parse(dr[0]["NORhi_beta"].ToString());
-                maxNormal = Math.Min(upper_max,
-                    Math.Max(upper_min,
-                        upper_mu + upper_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
-                        upper_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
-            }
+        //    if (dr.Length > 0)
+        //    {
+        //        res.description = "ID:" + dr[0]["GRanD_ID"].ToString();
+        //        double upper_max = double.MaxValue;
+        //        if (!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
+        //            upper_max = double.Parse(dr[0]["NORhi_max"].ToString());
+        //        double upper_min = !dr[0]["NORhi_min"].ToString().Contains("#NAME?") & !dr[0]["NORhi_min"].ToString().Contains("Infinity") ? double.Parse(dr[0]["NORhi_min"].ToString()): double.MinValue;
+        //        double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString());
+        //        double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString());
+        //        double omega = 1.0 / 52.0;
+        //        double upper_beta = double.Parse(dr[0]["NORhi_beta"].ToString());
+        //        maxNormal = Math.Min(upper_max,
+        //            Math.Max(upper_min,
+        //                upper_mu + upper_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
+        //                upper_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
+        //    }
 
-            long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
-            return maxNormal / 100 * maxMCM;
-        }
+        //    long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+        //    return maxNormal / 100 * maxMCM;
+        //}
 
-        private double GetMinNormal(Node res, int weekNumber)
-        {
-            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
-            double minNormal = 1.0;
+        //private double GetMinNormal(Node res, int weekNumber)
+        //{
+        //    DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+        //    double minNormal = 1.0;
 
-            if (dr.Length > 0)
-            {
-                double lower_max = double.MaxValue;
-                if (dr[0]["NORhi_max"].ToString() != "Infinity")
-                    lower_max = double.Parse(dr[0]["NORlo_max"].ToString());
+        //    if (dr.Length > 0)
+        //    {
+        //        double lower_max = double.MaxValue;
+        //        if (dr[0]["NORlo_max"].ToString() != "Infinity")
+        //            lower_max = double.Parse(dr[0]["NORlo_max"].ToString());
 
-                double lower_min = dr[0]["NORlo_min"].ToString() != "-Infinity" ? dr[0].Field<double>("NORlo_min") : double.MinValue;
-                double lower_mu = double.Parse(dr[0]["NORlo_mu"].ToString());
-                double lower_alpha = double.Parse(dr[0]["NORlo_alpha"].ToString());
-                double omega = 1.0 / 52.0;
-                double lower_beta = double.Parse(dr[0]["NORlo_beta"].ToString());
-                minNormal = Math.Min(lower_max,
-                    Math.Max(lower_min,
-                        lower_mu + lower_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
-                        lower_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
-            }
+        //        double lower_min = dr[0]["NORlo_min"].ToString() != "" & dr[0]["NORlo_min"].ToString() != "-Infinity" ? double.Parse(dr[0]["NORlo_min"].ToString()) : double.MinValue;
+        //        double lower_mu = double.Parse(dr[0]["NORlo_mu"].ToString());
+        //        double lower_alpha = double.Parse(dr[0]["NORlo_alpha"].ToString());
+        //        double omega = 1.0 / 52.0;
+        //        double lower_beta = double.Parse(dr[0]["NORlo_beta"].ToString());
+        //        minNormal = Math.Min(lower_max,
+        //            Math.Max(lower_min,
+        //                lower_mu + lower_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
+        //                lower_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
+        //    }
 
-            long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
-            return minNormal / 100 * maxMCM;
-        }
+        //    long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+        //    return minNormal / 100 * maxMCM;
+        //}
 
-        private double GetResInflow(Node res)
-        {
-            double sumFlow = 0.0;
-            LinkList ll = res.InflowLinks;
+        //private double GetResInflow(Node res)
+        //{
+        //    double sumFlow = 0.0;
+        //    LinkList ll = res.InflowLinks;
 
-            while (ll != null)
-            {
-                sumFlow += ll.link.mlInfo.flow;  // Summing the flow from each inflow link
-                ll = ll.next;
-            }
+        //    while (ll != null)
+        //    {
+        //        sumFlow += ll.link.mlInfo.flow;  // Summing the flow from each inflow link
+        //        ll = ll.next;
+        //    }
 
-            return sumFlow;
-        }
+        //    return sumFlow;
+        //}
 
-        private DataTable ReadCsv(string filePath)
-        {
-            string connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" +
-                Path.GetDirectoryName(filePath) + ";Extended Properties=\"Text;HDR=YES;FMT=Delimited\"";
-            string fileName = Path.GetFileName(filePath);
-            string selectString = "SELECT * FROM [" + fileName + "]";
-            using (OleDbConnection connection = new OleDbConnection(connectionString))
-            {
-                using (OleDbDataAdapter adapter = new OleDbDataAdapter(selectString, connection))
-                {
-                    DataTable dataTable = new DataTable();
-                    adapter.Fill(dataTable);
-                    return dataTable;
-                }
-            }
-        }
+        //private DataTable ReadCsv(string filePath)
+        //{
+        //    string connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" +
+        //        Path.GetDirectoryName(filePath) + ";Extended Properties=\"Text;HDR=YES;FMT=Delimited\"";
+        //    string fileName = Path.GetFileName(filePath);
+        //    string selectString = "SELECT * FROM [" + fileName + "]";
+        //    using (OleDbConnection connection = new OleDbConnection(connectionString))
+        //    {
+        //        using (OleDbDataAdapter adapter = new OleDbDataAdapter(selectString, connection))
+        //        {
+        //            DataTable dataTable = new DataTable();
+        //            adapter.Fill(dataTable);
+        //            return dataTable;
+        //        }
+        //    }
+        //}
     }
 }

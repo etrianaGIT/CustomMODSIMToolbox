@@ -90,6 +90,7 @@
     <Compile Include="ResOpsReleaseRampRates.cs" />
     <Compile Include="Routing.cs" />
     <Compile Include="ReservoirLayers.cs" />
+    <Compile Include="StarFit\StarFitUtils.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

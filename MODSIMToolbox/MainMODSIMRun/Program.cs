@@ -49,12 +49,20 @@ namespace MODSIMModeling.MainMODSIMRun
             //routeTool.SetRoutingParams("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\WAlloc\\MODSIM\\routing\\UCOL_NHM_MK_Params.csv");
 
             //--------------------------------------------
+            string paramsCsvPath = "C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv";
+            // ----- StarFIT reservoir targets
             resTool = new ReservoirLayers(ref myModel);
             resTool.messageOutRun += OnMessage;
             //Process reservoir targets
             // resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
             //recalculated Fontanelle Reservoir parameters
             resTool.SetReservoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv");
+            // ----- StarFIT Releases
+            starfit = new STARFITRelease(ref myModel);
+            starfit.messageOutRun += OnMessage;
+            // Load STARfit parameters
+            starfit.LoadSTARFITParameters(paramsCsvPath);
+
 
             //--------------------------------------------
             //Zero All Reservoir Storage
@@ -69,14 +77,7 @@ namespace MODSIMModeling.MainMODSIMRun
             }
 
 
-            starfit = new StarFitRelease(ref myModel);
-            starfit.messageOutRun += OnMessage;
             
-            // Load STARfit parameters
-
-            string paramsCsvPath = "C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv";
-            starfit.LoadStarFitParams(paramsCsvPath);
-
             ////--------------------------------------------
             //obsFlowImport = new ObservedFLowImport(ref myModel);
             //obsFlowImport.ImportTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gage_search");

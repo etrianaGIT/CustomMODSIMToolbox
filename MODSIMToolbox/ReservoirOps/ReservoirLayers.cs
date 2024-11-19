@@ -1,10 +1,13 @@
 ﻿using Csu.Modsim.ModsimModel;
 using Csu.Modsim.NetworkUtils;
+using MODSIMModeling.ReservoirOps.StarFit;
 using System;
 using System.Data;
 using System.Data.OleDb;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Runtime.Remoting.Messaging;
 
 namespace MODSIMModeling.ReservoirOps
 {
@@ -13,10 +16,11 @@ namespace MODSIMModeling.ReservoirOps
         public delegate void ProcessMessage(string msg);  // delegate
 
         public Model myModel;
-        private DataTable _DtParams;
+        //private DataTable _DtParams;
 
         public event ProcessMessage messageOutRun;     //event
         private ModelOutputSupport modsimoutputsupport;
+        private StarFitUtils _MyStarFitUtils;
 
         public ReservoirLayers(ref Model m_Model)
         {
@@ -31,13 +35,16 @@ namespace MODSIMModeling.ReservoirOps
             ////Save changes to the XY (run)
             //if(saveXYRun)
             //    XYFileWriter.Write(myModel, myModel.fname.Replace(".xy","Run.xy"));
+
+            _MyStarFitUtils = new StarFitUtils();
+            _MyStarFitUtils.messageOut += OnMessage;
         }
 
         public void SetReservoirTargets(string paramsCsv, bool onlyResWithMeasured = false)
         {
             //Read parameters in a datatable
-            _DtParams = ReadCsv(paramsCsv);
-
+            //_DtParams = ReadCsv(paramsCsv);
+            _MyStarFitUtils.LoadParameters(paramsCsv);
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
@@ -54,6 +61,9 @@ namespace MODSIMModeling.ReservoirOps
                 res.m.adaTargetsM.Interpolate = true;
                 res.m.adaTargetsM.VariesByYear = true;
                 res.m.adaTargetsM.units = ModsimUnits.FromLabel("MCM");
+                // Assuming that the max normal is in MCM
+                long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+                              
                 dt.Rows.Clear();
                 foreach (DataRow dr in myModel.TimeStepManager.timeStepsList.Rows)
                 {
@@ -63,7 +73,7 @@ namespace MODSIMModeling.ReservoirOps
                     int weekNumber = calendar.GetWeekOfYear(dtime, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
 
                     newdr[0] = dr["EndDate"].ToString();
-                    newdr[1] = GetMaxNormal(res, weekNumber);// * myModel.ScaleFactor; // * 1233.48 / 1000000
+                    newdr[1] = _MyStarFitUtils.GetMaxNormal(res, weekNumber,maxMCM);// * myModel.ScaleFactor; // * 1233.48 / 1000000
                     dt.Rows.Add(newdr);
 
 
@@ -82,13 +92,13 @@ namespace MODSIMModeling.ReservoirOps
                 DateTime dtime0 = myModel.TimeStepManager.Index2Date(0, TypeIndexes.ModelIndex);
                 Calendar calendar0 = CultureInfo.InvariantCulture.Calendar;
                 int weekNumber0 = calendar0.GetWeekOfYear(dtime0, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-                double minNormal = GetMinNormal(res, weekNumber0);
-                double maxNormal = GetMaxNormal(res, weekNumber0);
+                double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber0,maxMCM);
+                double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber0, maxMCM);
                 //reservoir units are MCM - need to convert from AF to MCM
                 if (res.m.starting_volume == 0)
                 {
                     res.m.starting_volume = (long)Math.Round((minNormal + maxNormal) / 2.0, 0);//* 1233.48 / 1000000
-                    Console.WriteLine($"\tSetting starting volume for res {res.name} to {res.m.starting_volume}.");
+                    messageOutRun($"\tSetting starting volume for res {res.name} to {res.m.starting_volume}.");
                 }
                 else
                 {
@@ -99,24 +109,29 @@ namespace MODSIMModeling.ReservoirOps
             }
         }
 
-        /// <summary>
-        /// Gets the value of a parameter for a reservoir.
-        /// This value is in MODSIM units because it is multiplied by the ScaleFactor.
-        /// </summary>
-        /// <param name="res">The reservoir node.</param>
-        /// <param name="colName">The name of the column containing the parameter value.</param>
-        /// <returns>The parameter value for the reservoir in MODSIM units.</returns>
-        private long GetParameterValue(Node res, string colName)
+        private void OnMessage(string msg)
         {
-            DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
-            long value = -999;
-
-            if (dr.Length > 0)
-            {
-                value = long.Parse(Math.Round(double.Parse(dr[0][colName].ToString()) * myModel.ScaleFactor, 0).ToString());
-            }
-            return value;
+            messageOutRun(msg);
         }
+
+        ///// <summary>
+        ///// Gets the value of a parameter for a reservoir.
+        ///// This value is in MODSIM units because it is multiplied by the ScaleFactor.
+        ///// </summary>
+        ///// <param name="res">The reservoir node.</param>
+        ///// <param name="colName">The name of the column containing the parameter value.</param>
+        ///// <returns>The parameter value for the reservoir in MODSIM units.</returns>
+        //private long GetParameterValue(Node res, string colName)
+        //{
+        //    DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
+        //    long value = -999;
+
+        //    if (dr.Length > 0)
+        //    {
+        //        value = long.Parse(Math.Round(double.Parse(dr[0][colName].ToString()) * myModel.ScaleFactor, 0).ToString());
+        //    }
+        //    return value;
+        //}
 
         private void OnInitialize()
         {
@@ -153,8 +168,10 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
-                double minNormal = GetMinNormal(res, weekNumber);
-                double maxNormal = GetMaxNormal(res, weekNumber);
+                long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+
+                double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber,maxMCM);
+                double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber, maxMCM);
 
                 DataTable dt = res.m.adaTargetsM.dataTable;
 
@@ -168,101 +185,104 @@ namespace MODSIMModeling.ReservoirOps
             }
         }
 
-        /// <summary>
-        /// Gets the maximum normal value for a reservoir based on the week number.
-        /// This value is in MODSIM units because it is based on the internal reservoir capacity variable.
-        /// </summary>
-        /// <param name="res">The reservoir node.</param>
-        /// <param name="weekNumber">The week number.</param>
-        /// <returns>The maximum normal value for the reservoir.</returns>
-        private double GetMaxNormal(Node res, int weekNumber)
-        {
-            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
-            double maxNormal = 1.0;// = res.m.max_volume;
+        ///// <summary>
+        ///// Gets the maximum normal value for a reservoir based on the week number.
+        ///// This value is in MODSIM units because it is based on the internal reservoir capacity variable.
+        ///// </summary>
+        ///// <param name="res">The reservoir node.</param>
+        ///// <param name="weekNumber">The week number.</param>
+        ///// <returns>The maximum normal value for the reservoir.</returns>
+        //private double GetMaxNormal(Node res, int weekNumber)
+        //{
+        //    DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+        //    double maxNormal = 1.0;// = res.m.max_volume;
 
-            if (dr.Length > 0)
-            {
-                res.description = "ID:" + dr[0]["GRanD_ID"].ToString();
-                double upper_max = double.MaxValue;
-                if (!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
-                    upper_max = double.Parse(dr[0]["NORhi_max"].ToString());
-                double upper_min = !dr[0]["NORhi_min"].ToString().Contains("Infinity") & !dr[0]["NORhi_min"].ToString().Contains("#NAME?") ? double.Parse(dr[0]["NORhi_min"].ToString()) : double.MinValue;
-                double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString());
-                double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString());
-                double omega = 1.0 / 52.0;
-                double upper_beta = double.Parse(dr[0]["NORhi_beta"].ToString());
-                maxNormal = Math.Min(upper_max,
-                                        Math.Max(upper_min,
-                                               upper_mu +
-                upper_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
-                upper_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
-            }
-            // Assuming that the max normal is in MCM
-            long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
-            return maxNormal / 100 * maxMCM;
-        }
+        //    if (dr.Length > 0)
+        //    {
+        //        res.description = "ID:" + dr[0]["GRanD_ID"].ToString();
+        //        double upper_max = double.MaxValue;
+        //        if (!dr[0]["NORhi_max"].ToString().Contains("Infinity"))
+        //            upper_max = double.Parse(dr[0]["NORhi_max"].ToString());
+        //        double upper_min = !dr[0]["NORhi_min"].ToString().Contains("Infinity") & !dr[0]["NORhi_min"].ToString().Contains("#NAME?") ? double.Parse(dr[0]["NORhi_min"].ToString()) : double.MinValue;
+        //        double upper_mu = double.Parse(dr[0]["NORhi_mu"].ToString());
+        //        double upper_alpha = double.Parse(dr[0]["NORhi_alpha"].ToString());
+        //        double omega = 1.0 / 52.0;
+        //        double upper_beta = double.Parse(dr[0]["NORhi_beta"].ToString());
+        //        maxNormal = Math.Min(upper_max,
+        //                                Math.Max(upper_min,
+        //                                       upper_mu +
+        //        upper_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
+        //        upper_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
+        //    }
+        //    // Assuming that the max normal is in MCM
+        //    long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+        //    return maxNormal / 100 * maxMCM;
+        //}
 
-        private double GetMinNormal(Node res, int weekNumber)
-        {
-            DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
-            double minNormal = 1.0;// = res.m.min_volume;
-            if (dr.Length > 0)
-            {
-                double lower_max = double.MaxValue;
-                if (dr[0]["NORhi_max"].ToString() != "Infinity")
-                    lower_max = double.Parse(dr[0]["NORlo_max"].ToString());
+        //private double GetMinNormal(Node res, int weekNumber)
+        //{
+        //    DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
+        //    double minNormal = 1.0;// = res.m.min_volume;
+        //    if (dr.Length > 0)
+        //    {
+        //        double lower_max = double.MaxValue;
+        //        if (dr[0]["NORlo_max"].ToString() != "Infinity")
+        //            lower_max = double.Parse(dr[0]["NORlo_max"].ToString());
 
-                double lower_min = dr[0]["NORlo_min"].ToString() != "" & dr[0]["NORlo_min"].ToString() != "-Infinity" ? dr[0].Field<double>("NORlo_min") : double.MinValue;
-                double lower_mu = double.Parse(dr[0]["NORlo_mu"].ToString());
-                double lower_alpha = double.Parse(dr[0]["NORlo_alpha"].ToString());
-                double omega = 1.0 / 52.0;
-                double lower_beta = double.Parse(dr[0]["NORlo_beta"].ToString());
-                minNormal = Math.Min(lower_max,
-                                        Math.Max(lower_min,
-                                               lower_mu +
-                lower_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
-                lower_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
-            }
-            long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
-            return minNormal / 100 * maxMCM;
-        }
+        //        double lower_min = dr[0]["NORlo_min"].ToString() != "" & dr[0]["NORlo_min"].ToString() != "-Infinity" ? dr[0].Field<double>("NORlo_min") : double.MinValue;
+        //        double lower_mu = double.Parse(dr[0]["NORlo_mu"].ToString());
+        //        double lower_alpha = double.Parse(dr[0]["NORlo_alpha"].ToString());
+        //        double omega = 1.0 / 52.0;
+        //        double lower_beta = double.Parse(dr[0]["NORlo_beta"].ToString());
+        //        minNormal = Math.Min(lower_max,
+        //                                Math.Max(lower_min,
+        //                                       lower_mu +
+        //        lower_alpha * Math.Sin(2.0 * Math.PI * omega * weekNumber) +
+        //        lower_beta * Math.Cos(2.0 * Math.PI * omega * weekNumber)));
+        //    }
+        //    long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+        //    return minNormal / 100 * maxMCM;
+        //}
 
         private void OnIterationBottom()
         {
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
                 //min/max release
-                long resInflow = GetResInflow(res);
-                if (res.m.resBypassL != null)
-                    resInflow += res.m.resBypassL.mlInfo.flow;
+                long resInflow = _MyStarFitUtils.GetResInflow(res,true);
+                //if (res.m.resBypassL != null)
+                //    resInflow += res.m.resBypassL.mlInfo.flow;
                 if (res.m.resOutLink != null)
+                {
                     //Using the link downstream to capture both bypass and release
-                    res.m.resOutLink.to.OutflowLinks.link.mlInfo.hi = (long)Math.Round((1D + GetMaxReleaseParameter(res)) * resInflow, 0);
+                    double maxReleaseParameter = _MyStarFitUtils.GetVarValue(res, "Release_max", myModel.defaultMaxCap);
+                    res.m.resOutLink.to.OutflowLinks.link.mlInfo.hi = (long)Math.Round((1D + maxReleaseParameter) * resInflow, 0);
+                }
             }
         }
 
-        private double GetMaxReleaseParameter(Node res)
-        {
-            DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
-            double maxRelease = myModel.defaultMaxCap;
-            if (dr.Length > 0)
-            {
-                maxRelease = !dr[0]["Release_max"].ToString().Contains("Infinity") ? dr[0].Field<double>("Release_max") : maxRelease;
-            }
-            return maxRelease;
-        }
+        //private double GetMaxReleaseParameter(Node res)
+        //{
+        //    DataRow[] dr = _DtParams.Select($"[GRanD_ID] = '{res.name}'");
+        //    double maxRelease = myModel.defaultMaxCap;
+        //    if (dr.Length > 0)
+        //    {
+        //        maxRelease = !dr[0]["Release_max"].ToString().Contains("Infinity") ? dr[0].Field<double>("Release_max") : maxRelease;
+        //    }
+        //    return maxRelease;
+        //}
 
-        private long GetResInflow(Node res)
-        {
-            long sumFlow = 0;
-            LinkList ll = res.InflowLinks;
-            while (ll != null)
-            {
-                sumFlow += ll.link.mlInfo.flow;
-                ll = ll.next;
-            }
-            return sumFlow;
-        }
+        //private long GetResInflow(Node res)
+        //{
+        //    long sumFlow = 0;
+        //    LinkList ll = res.InflowLinks;
+        //    while (ll != null)
+        //    {
+        //        sumFlow += ll.link.mlInfo.flow;
+        //        ll = ll.next;
+        //    }
+        //    return sumFlow;
+        //}
 
         private void OnIterationConverge()
         {
@@ -273,22 +293,22 @@ namespace MODSIMModeling.ReservoirOps
         {
         }
 
-        private DataTable ReadCsv(string filePath)
-        {
-            string connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" +
-                Path.GetDirectoryName(filePath) + ";Extended Properties=\"Text;HDR=YES;FMT=Delimited\"";
-            string fileName = Path.GetFileName(filePath);
-            string selectString = "SELECT * FROM [" + fileName + "]";
-            using (OleDbConnection connection = new OleDbConnection(connectionString))
-            {
-                using (OleDbDataAdapter adapter = new OleDbDataAdapter(selectString, connection))
-                {
-                    DataTable dataTable = new DataTable();
-                    adapter.Fill(dataTable);
-                    return dataTable;
-                }
-            }
-        }
+        //private DataTable ReadCsv(string filePath)
+        //{
+        //    string connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" +
+        //        Path.GetDirectoryName(filePath) + ";Extended Properties=\"Text;HDR=YES;FMT=Delimited\"";
+        //    string fileName = Path.GetFileName(filePath);
+        //    string selectString = "SELECT * FROM [" + fileName + "]";
+        //    using (OleDbConnection connection = new OleDbConnection(connectionString))
+        //    {
+        //        using (OleDbDataAdapter adapter = new OleDbDataAdapter(selectString, connection))
+        //        {
+        //            DataTable dataTable = new DataTable();
+        //            adapter.Fill(dataTable);
+        //            return dataTable;
+        //        }
+        //    }
+        //}
     }
 
 }
