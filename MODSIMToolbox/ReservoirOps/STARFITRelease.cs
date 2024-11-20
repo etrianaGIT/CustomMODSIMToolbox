@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.OleDb;
+using System.Data.SqlTypes;
 using System.Globalization;
 using System.IO;
 using System.Runtime.Remoting.Messaging;
@@ -21,10 +22,13 @@ namespace MODSIMModeling.ReservoirOps
         public event ProcessMessage messageOutRun;     // Event
         private ModelOutputSupport modsimoutputsupport;
         private StarFitUtils _MyStarFitUtils;
+        private double flowMODSIMToCMS;
+        private double storageMODSIMToMCM;
+        private double storageMODSIMToCM;
 
         public STARFITRelease(ref Model m_Model)
         {
-            //m_Model.Init += OnInitialize;
+            m_Model.Init += OnInitialize;
             m_Model.IterBottom += OnIterationBottom;
             m_Model.IterTop += OnIterationTop;
             m_Model.Converged += OnIterationConverge;
@@ -35,6 +39,20 @@ namespace MODSIMModeling.ReservoirOps
             _MyStarFitUtils = new StarFitUtils();
             _MyStarFitUtils.messageOut += OnMessage;
 
+            //Get conversion factors
+            flowMODSIMToCMS = Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(1, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
+            storageMODSIMToMCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1, myModel.StorageUnits), ModsimUnits.FromLabel("MCM")));
+            storageMODSIMToCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1, myModel.StorageUnits), ModsimUnits.FromLabel("CM")));
+        }
+
+        private void OnInitialize()
+        {
+            foreach (Node res in myModel.Nodes_Reservoirs)
+            {
+                double accumInflow = 0;
+                res.Tag = accumInflow;
+            }
+
         }
 
         private void OnFinished()
@@ -43,6 +61,12 @@ namespace MODSIMModeling.ReservoirOps
 
         private void OnIterationConverge()
         {
+            // add the current inflow to the reservoir nodes Tag object.
+            foreach (Node res in myModel.Nodes_Reservoirs)
+            {
+                double inflow = _MyStarFitUtils.GetResInflow(res); // Current inflow in MODSIM units
+                res.Tag = (double) res.Tag + inflow;  //accumulated inflow in MODSIM units.
+            }
         }
 
         public void LoadSTARFITParameters(string paramsCsv)
@@ -58,14 +82,7 @@ namespace MODSIMModeling.ReservoirOps
             messageOutRun(msg);
         }
 
-        /* private void OnInitialize() // comment out because we don't need this in both layers...is there any additional output we want to include with the release?
-         {
-             modsimoutputsupport = myModel.OutputSupportClass as ModelOutputSupport;
-             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "Layer_Target", false, true, "Volume");
-             modsimoutputsupport.AddUserDefinedOutputVariable(myModel, "MidLayer_Target", false, true, "Volume");
-             modsimoutputsupport.AddCurrentUserReservoir_STOROutput += AddMyResOutput;
-         }*/
-
+        
         /* private void AddMyResOutput(Node node, DataRow row) // can commment this out, unless if we want to add any custom output to the MODSIM database 
          {
              if (node.mnInfo.balanceLinks != null)
@@ -87,7 +104,7 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
-                long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+                long maxMCM = (long)Math.Round(res.m.max_volume * storageMODSIMToMCM,0);// Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
 
                 double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber,maxMCM);
                 double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber, maxMCM);
@@ -113,6 +130,7 @@ namespace MODSIMModeling.ReservoirOps
                 if (sfLink != null)
                 {
                     double release = ComputeSTARFITRelease(res, weekNumber);
+
                     if (release >= 0)
                     {
                         sfLink.mlInfo.hi = (long)Math.Round(release);
@@ -123,6 +141,13 @@ namespace MODSIMModeling.ReservoirOps
             }
         }
 
+        /// <summary>
+        /// Compute the release from a reservoir for the current week.
+        /// Relese in MODSIM units.
+        /// </summary>
+        /// <param name="res">Reservoir node to calculate the release</param>
+        /// <param name="weekNumber">week number for the release</param>
+        /// <returns></returns>
         private double ComputeSTARFITRelease(Node res, int weekNumber)
         {
             //DataRow[] dr = _DtParams.Select($"[GRanD_NAME] = '{res.name}'");
@@ -158,26 +183,39 @@ namespace MODSIMModeling.ReservoirOps
 
             double storage = (double) res.mnInfo.start;
             // Convert to m³
-            storage = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(storage, res.m.reservoir_units), ModsimUnits.FromLabel("CM"))); 
+            storage = storage * storageMODSIMToCM;// Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(storage, res.m.reservoir_units), ModsimUnits.FromLabel("CM"))); 
             double capacity = res.m.max_volume; 
             // Convert to m³
-            capacity = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(capacity, res.m.reservoir_units), ModsimUnits.FromLabel("CM")));
+            capacity = capacity * storageMODSIMToCM;//Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(capacity, res.m.reservoir_units), ModsimUnits.FromLabel("CM")));
 
             double inflow_mean = _MyStarFitUtils.GetVarValue(res, "Obs_MEANFLOW_CUMECS"); // average inflow from csv 
-            
+            double inflow = _MyStarFitUtils.GetResInflow(res); // Current inflow in MODSIM units
+            // Extrapolated reservoirs don't have inflow in the csv.
+            // Python code noted that Turner used inflow from ResOpsUS in these cases.
+            if (inflow_mean<0)
+            {
+                //Calculate a rolling inflow average
+                // res.Tag has the sum of simulated inflows. the Tag value is added at convergence of the current time step, so the value here
+                // doesn't have the current inflow. Need to use the inflow in MODSIM units.
+                inflow_mean = ((double)res.Tag + inflow) / (myModel.mInfo.CurrentModelTimeStepIndex + 1);
+                // convert mean inflow to m³/s
+                inflow_mean = inflow_mean * flowMODSIMToCMS;//Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow_mean, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
+            }
+            // convert inflow to m³/s
+            inflow = inflow * flowMODSIMToCMS;// Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
+
+
             //if (_MyStarFitUtils.IsDataIssues(res.name))
             //    return 0;
-
-            double inflow = _MyStarFitUtils.GetResInflow(res); // Current inflow in MODSIM units
-            // convert to m³/s
-            inflow = Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
 
             double omega = 1.0 / 52.0;
 
             // Calculate maxNormal and minNormal using sine and cosine functions
-            long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+            long maxMCM = (long)Math.Round(res.m.max_volume*storageMODSIMToMCM,0);// Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
             double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber,maxMCM);
+            double maxNormalPerc = maxNormal / maxMCM * 100;
             double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber, maxMCM);
+            double minNormalPerc = minNormal / maxMCM * 100;
 
             // Calculate forecasted and mean weekly volume
             double forecasted_weekly_volume = 7.0 * inflow * 24.0 * 60.0 * 60.0;
@@ -195,17 +233,17 @@ namespace MODSIMModeling.ReservoirOps
             double release_max_volume = mean_weekly_volume * (1 + release_max) / 7.0;
 
             // Calculate availability status
-            double availability_status = (100.0 * storage / capacity - minNormal) / (maxNormal - minNormal);
+            double availability_status = (100.0 * storage / capacity - minNormalPerc) / (maxNormalPerc - minNormalPerc);
 
             // Calculate release based on availability status
             double release;
             if (availability_status > 1)
             {
-                release = (storage - (capacity * maxNormal / 100.0) + forecasted_weekly_volume) / 7.0;
+                release = (storage - (capacity * maxNormalPerc / 100.0) + forecasted_weekly_volume) / 7.0;
             }
             else if (availability_status < 0)
             {
-                release = (storage - (capacity * minNormal / 100.0) + forecasted_weekly_volume) / 7.0;
+                release = (storage - (capacity * minNormalPerc / 100.0) + forecasted_weekly_volume) / 7.0;
             }
             else
             {
@@ -218,6 +256,8 @@ namespace MODSIMModeling.ReservoirOps
 
             // Enforce boundaries on release
             release = Math.Max(release_min_volume, Math.Min(release, release_max_volume));
+            //release in m3/d -> convert to MODSIM units
+            release = release / 24 / 60 / 60 / flowMODSIMToCMS;// Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(release / 24 / 60 / 60, ModsimUnits.FromLabel("CMS")), myModel.FlowUnits));
 
             return release;
         }

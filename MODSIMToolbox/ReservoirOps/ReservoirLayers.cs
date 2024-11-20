@@ -21,6 +21,7 @@ namespace MODSIMModeling.ReservoirOps
         public event ProcessMessage messageOutRun;     //event
         private ModelOutputSupport modsimoutputsupport;
         private StarFitUtils _MyStarFitUtils;
+        private double storageMODSIMToMCM;
 
         public ReservoirLayers(ref Model m_Model)
         {
@@ -38,6 +39,8 @@ namespace MODSIMModeling.ReservoirOps
 
             _MyStarFitUtils = new StarFitUtils();
             _MyStarFitUtils.messageOut += OnMessage;
+
+            storageMODSIMToMCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1, myModel.StorageUnits), ModsimUnits.FromLabel("MCM")));
         }
 
         public void SetReservoirTargets(string paramsCsv, bool onlyResWithMeasured = false)
@@ -62,8 +65,8 @@ namespace MODSIMModeling.ReservoirOps
                 res.m.adaTargetsM.VariesByYear = true;
                 res.m.adaTargetsM.units = ModsimUnits.FromLabel("MCM");
                 // Assuming that the max normal is in MCM
-                long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
-                              
+                long maxMCM = (long) Math.Round(res.m.max_volume * storageMODSIMToMCM,0);//Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+
                 dt.Rows.Clear();
                 foreach (DataRow dr in myModel.TimeStepManager.timeStepsList.Rows)
                 {
@@ -168,7 +171,7 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
-                long maxMCM = Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+                long maxMCM = (long)Math.Round(res.m.max_volume * storageMODSIMToMCM,0);//Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
 
                 double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber,maxMCM);
                 double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber, maxMCM);
