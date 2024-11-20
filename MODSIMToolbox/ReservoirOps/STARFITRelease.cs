@@ -40,9 +40,9 @@ namespace MODSIMModeling.ReservoirOps
             _MyStarFitUtils.messageOut += OnMessage;
 
             //Get conversion factors
-            flowMODSIMToCMS = Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(1, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
-            storageMODSIMToMCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1, myModel.StorageUnits), ModsimUnits.FromLabel("MCM")));
-            storageMODSIMToCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1, myModel.StorageUnits), ModsimUnits.FromLabel("CM")));
+            flowMODSIMToCMS = Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(1/myModel.ScaleFactor, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
+            storageMODSIMToMCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1 / myModel.ScaleFactor, myModel.StorageUnits), ModsimUnits.FromLabel("MCM")));
+            storageMODSIMToCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1 / myModel.ScaleFactor, myModel.StorageUnits), ModsimUnits.FromLabel("CM")));
         }
 
         private void OnInitialize()
@@ -65,7 +65,7 @@ namespace MODSIMModeling.ReservoirOps
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
                 double inflow = _MyStarFitUtils.GetResInflow(res); // Current inflow in MODSIM units
-                res.Tag = (double) res.Tag + inflow;  //accumulated inflow in MODSIM units.
+                res.Tag = (double) res.Tag + inflow;  //accumulated inflow in MODSIM units and including the scaling factor.
             }
         }
 
@@ -102,20 +102,20 @@ namespace MODSIMModeling.ReservoirOps
             Calendar calendar = CultureInfo.InvariantCulture.Calendar;
             int weekNumber = calendar.GetWeekOfYear(dtime, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
 
-            foreach (Node res in myModel.Nodes_Reservoirs)
-            {
-                long maxMCM = (long)Math.Round(res.m.max_volume * storageMODSIMToMCM,0);// Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+            //foreach (Node res in myModel.Nodes_Reservoirs)
+            //{
+            //    long maxMCM = (long)Math.Round(res.m.max_volume * storageMODSIMToMCM,0);// Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
 
-                double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber,maxMCM);
-                double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber, maxMCM);
+            //    double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber,maxMCM);
+            //    double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber, maxMCM);
 
-                //DataTable dt = res.m.adaTargetsM.dataTable;
-              /*  if (dt.Rows.Count > 0) // can commment out
-                {
-                    res.m.resBalance.targetPercentages[0] = (double)(minNormal / maxNormal * 100);
-                    res.m.resBalance.targetPercentages[1] = (double)(((minNormal + maxNormal) / 2) / maxNormal * 100);
-                }*/
-            }
+            //    //DataTable dt = res.m.adaTargetsM.dataTable;
+            //  /*  if (dt.Rows.Count > 0) // can commment out
+            //    {
+            //        res.m.resBalance.targetPercentages[0] = (double)(minNormal / maxNormal * 100);
+            //        res.m.resBalance.targetPercentages[1] = (double)(((minNormal + maxNormal) / 2) / maxNormal * 100);
+            //    }*/
+            //}
         }
 
         private void OnIterationBottom()
@@ -199,9 +199,11 @@ namespace MODSIMModeling.ReservoirOps
                 // doesn't have the current inflow. Need to use the inflow in MODSIM units.
                 inflow_mean = ((double)res.Tag + inflow) / (myModel.mInfo.CurrentModelTimeStepIndex + 1);
                 // convert mean inflow to m³/s
+                //  conversion factor has the MODSIM scalefactor included
                 inflow_mean = inflow_mean * flowMODSIMToCMS;//Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow_mean, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
             }
             // convert inflow to m³/s
+            //  conversion factor has the MODSIM scalefactor included
             inflow = inflow * flowMODSIMToCMS;// Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
 
 
@@ -257,6 +259,7 @@ namespace MODSIMModeling.ReservoirOps
             // Enforce boundaries on release
             release = Math.Max(release_min_volume, Math.Min(release, release_max_volume));
             //release in m3/d -> convert to MODSIM units
+            //  conversion factor includes the MODSIM scale factor
             release = release / 24 / 60 / 60 / flowMODSIMToCMS;// Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(release / 24 / 60 / 60, ModsimUnits.FromLabel("CMS")), myModel.FlowUnits));
 
             return release;

@@ -40,7 +40,7 @@ namespace MODSIMModeling.ReservoirOps
             _MyStarFitUtils = new StarFitUtils();
             _MyStarFitUtils.messageOut += OnMessage;
 
-            storageMODSIMToMCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1, myModel.StorageUnits), ModsimUnits.FromLabel("MCM")));
+            storageMODSIMToMCM = Convert.ToDouble(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(1/myModel.ScaleFactor, myModel.StorageUnits), ModsimUnits.FromLabel("MCM")));
         }
 
         public void SetReservoirTargets(string paramsCsv, bool onlyResWithMeasured = false)
@@ -252,7 +252,7 @@ namespace MODSIMModeling.ReservoirOps
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
                 //min/max release
-                long resInflow = _MyStarFitUtils.GetResInflow(res,true);
+                double resInflow = _MyStarFitUtils.GetResInflow(res,true) / myModel.ScaleFactor;//return value in MODSIM units with scale factor.
                 //if (res.m.resBypassL != null)
                 //    resInflow += res.m.resBypassL.mlInfo.flow;
                 if (res.m.resOutLink != null)
