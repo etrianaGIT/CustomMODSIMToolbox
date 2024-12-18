@@ -173,7 +173,8 @@ namespace MODSIMModeling.ReservoirOps.StarFit
             LinkList ll = res.InflowLinks;
             while (ll != null)
             {
-                sumFlow += ll.link.mlInfo.flow;
+                if(!ll.link.mlInfo.isArtificial)
+                    sumFlow += ll.link.mlInfo.flow;
                 ll = ll.next;
             }
             if (addByPass && res.m.resBypassL != null)

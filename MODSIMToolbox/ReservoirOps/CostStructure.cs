@@ -25,7 +25,7 @@ namespace MODSIMModeling.Preprocessing
                 { "_StarfitRel", -15000 },
                 { "_Spill", 35000 },
                 { "_Spill2", 40000 },
-                { "_Spill3", 0 }
+                { "_Spill3", 31000 }
             };
         }
         public void ApplyLinksCostStructure()

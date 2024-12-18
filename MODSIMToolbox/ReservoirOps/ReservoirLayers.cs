@@ -76,7 +76,7 @@ namespace MODSIMModeling.ReservoirOps
                     int weekNumber = calendar.GetWeekOfYear(dtime, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
 
                     newdr[0] = dr["EndDate"].ToString();
-                    newdr[1] = _MyStarFitUtils.GetMaxNormal(res, weekNumber,maxMCM);// * myModel.ScaleFactor; // * 1233.48 / 1000000
+                    newdr[1] = _MyStarFitUtils.GetMaxNormal(res, weekNumber,(long) Math.Round(maxMCM * myModel.ScaleFactor)); // * 1233.48 / 1000000
                     dt.Rows.Add(newdr);
 
 
@@ -95,12 +95,12 @@ namespace MODSIMModeling.ReservoirOps
                 DateTime dtime0 = myModel.TimeStepManager.Index2Date(0, TypeIndexes.ModelIndex);
                 Calendar calendar0 = CultureInfo.InvariantCulture.Calendar;
                 int weekNumber0 = calendar0.GetWeekOfYear(dtime0, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-                double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber0,maxMCM);
+                double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber0, maxMCM);
                 double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber0, maxMCM);
                 //reservoir units are MCM - need to convert from AF to MCM
                 if (res.m.starting_volume == 0)
                 {
-                    res.m.starting_volume = (long)Math.Round((minNormal + maxNormal) / 2.0, 0);//* 1233.48 / 1000000
+                    res.m.starting_volume = (long)Math.Round((minNormal + maxNormal) / 2.0 * myModel.ScaleFactor, 0);//* 1233.48 / 1000000
                     messageOutRun($"\tSetting starting volume for res {res.name} to {res.m.starting_volume}.");
                 }
                 else
@@ -171,10 +171,10 @@ namespace MODSIMModeling.ReservoirOps
 
             foreach (Node res in myModel.Nodes_Reservoirs)
             {
-                long maxMCM = (long)Math.Round(res.m.max_volume * storageMODSIMToMCM,0);//Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+                long maxVol = res.m.max_volume;// (long)Math.Round(res.m.max_volume * storageMODSIMToMCM,0);//Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
 
-                double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber,maxMCM);
-                double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber, maxMCM);
+                double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber, maxVol);
+                double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber, maxVol);
 
                 DataTable dt = res.m.adaTargetsM.dataTable;
 

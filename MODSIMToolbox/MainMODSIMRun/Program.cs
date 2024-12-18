@@ -56,7 +56,7 @@ namespace MODSIMModeling.MainMODSIMRun
             //Process reservoir targets
             // resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
             //recalculated Fontanelle Reservoir parameters
-            resTool.SetReservoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv");
+            resTool.SetReservoirTargets(paramsCsvPath);
             // ----- StarFIT Releases
             starfit = new STARFITRelease(ref myModel);
             starfit.messageOutRun += OnMessage;
@@ -77,7 +77,7 @@ namespace MODSIMModeling.MainMODSIMRun
             }
 
 
-            
+
             ////--------------------------------------------
             //obsFlowImport = new ObservedFLowImport(ref myModel);
             //obsFlowImport.ImportTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gage_search");
@@ -86,15 +86,15 @@ namespace MODSIMModeling.MainMODSIMRun
             //obsFlowImport.ClearInflows();
 
             //--------------------------------------------
-            //procDemands = new DemandProcessing(ref myModel);
-            //////      This file includes the original demands compildas for the GSFLOW model
-            //////procDemands.ImportDeamandTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gaged_streamflow\\diversions_combined_by_gage_cmd_irrcu60.csv");
-            //////      This demand file was calculated for gages having 80% complete data, using geofabric 2.0
-            //////      Cost set to pull water from the operating band, but not from the dead pool
-            //procDemands.ImportDeamandTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\DiversionData\\GF2_KnowlesProcessedDiversion\\diversions_cfs_40%_irrig_ret_80%_complete.csv",
-            //                                    -20000,
-            //                                    "C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\UCOL_Reservoirs_UpsFG.csv",
-            //                                    "cfs");
+            procDemands = new DemandProcessing(ref myModel);
+            ////      This file includes the original demands compildas for the GSFLOW model
+            ////procDemands.ImportDeamandTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\gaged_streamflow\\diversions_combined_by_gage_cmd_irrcu60.csv");
+            ////      This demand file was calculated for gages having 80% complete data, using geofabric 2.0
+            ////      Cost set to pull water from the operating band, but not from the dead pool
+            procDemands.ImportDeamandTimeseries("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\DiversionData\\GF2_KnowlesProcessedDiversion\\diversions_cfs_40%_irrig_ret_80%_complete.csv",
+                                                -40000,
+                                                "C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\UCOL_Reservoirs_UpsFG.csv",
+                                                "cfs");
 
             //--------------------------------------------
             resOps = new ResOpsReleaseRampRates(ref myModel);

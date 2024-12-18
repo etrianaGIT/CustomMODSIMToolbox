@@ -51,7 +51,7 @@ namespace MODSIMModeling.Preprocessing
             // loop through all nodes and remove demand nodes
             foreach (Node n in myModel.Nodes_All)
             {
-                if (n.nodeType == NodeType.Demand)
+                if (n.nodeType == NodeType.Demand && !n.name.ToLower().Contains("sink"))
                 {
                     myModel.FireOnMessage("INFO:\tRemoving demand node: " + n.name);
                     myModel.Remove(n, true);
