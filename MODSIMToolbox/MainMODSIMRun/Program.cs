@@ -49,14 +49,16 @@ namespace MODSIMModeling.MainMODSIMRun
             //routeTool.SetRoutingParams("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\WAlloc\\MODSIM\\routing\\UCOL_NHM_MK_Params.csv");
 
             //--------------------------------------------
-            string paramsCsvPath = "C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv";
+            //string paramsCsvPath = "C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv";
+            string paramsCsvPath = "C:\\Users\\sbakar\\OneDrive - Research Triangle Institute\\Documents - USGS Coop Agreement\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv";
             // ----- StarFIT reservoir targets
             resTool = new ReservoirLayers(ref myModel);
             resTool.messageOutRun += OnMessage;
             //Process reservoir targets
             // resTool.SetReservvoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\ISTARF-CONUS.csv");
             //recalculated Fontanelle Reservoir parameters
-            resTool.SetReservoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv");
+            //resTool.SetReservoirTargets("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv");
+            resTool.SetReservoirTargets("C:\\Users\\sbakar\\OneDrive - Research Triangle Institute\\Documents - USGS Coop Agreement\\Modeling\\starfit_minimal\\starfit\\RevisedFontenelle\\ISTARF-CONUS (1).csv");
             // ----- StarFIT Releases
             starfit = new STARFITRelease(ref myModel);
             starfit.messageOutRun += OnMessage;
@@ -99,14 +101,17 @@ namespace MODSIMModeling.MainMODSIMRun
             //--------------------------------------------
             resOps = new ResOpsReleaseRampRates(ref myModel);
             resOps.messageOutRun += OnMessage;
-            resOps.LoadRampingCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\RampingRates_ExceedanceProbabilities_Aug22.csv",
-                                      increaseProb: 0.05, decreaseProb: 0.05);
+            //resOps.LoadRampingCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\RampingRates_ExceedanceProbabilities_Aug22.csv",
+            // increaseProb: 0.05, decreaseProb: 0.05);
+            resOps.LoadRampingCurves("C:\\Users\\sbakar\\OneDrive - Research Triangle Institute\\Documents - USGS Coop Agreement\\Modeling\\Data\\RampingRates_ExceedanceProbabilities_Aug22.csv", increaseProb: 0.05, decreaseProb: 0.05);
 
             //--------------------------------------------
             resOpsMM = new ResOpsReleaseMinMax(ref myModel);
             resOpsMM.messageOutRun += OnMessage;
-            resOpsMM.LoadExceedCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\MinMaxFlows_ExceedanceProbabilities_Aug22.csv",
-                                       maxProb: 0.15, minProb: 0.85);
+            //resOpsMM.LoadExceedCurves("C:\\Users\\etriana\\Research Triangle Institute\\USGS Coop Agreement - Documents\\Modeling\\Data\\MinMaxFlows_ExceedanceProbabilities_Aug22.csv",
+            //maxProb: 0.15, minProb: 0.85);
+            resOpsMM.LoadExceedCurves("C:\\Users\\sbakar\\OneDrive - Research Triangle Institute\\Documents - USGS Coop Agreement\\Modeling\\Data\\MinMaxFlows_ExceedanceProbabilities_Aug22.csv",
+                    maxProb: 0.15, minProb: 0.85);
 
             //--------------------------------------------
             //Apply the cost structure breaks internally specified in the cost class

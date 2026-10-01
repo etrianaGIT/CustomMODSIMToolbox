@@ -89,7 +89,7 @@ namespace MODSIMModeling.ReservoirOps
                 if (res.m.resOutLink != null)
                     res.m.resOutLink.m.cost = 1;
                 else
-                    Console.WriteLine("No release link for reservoir " + res.name + " defined.");
+                    Console.WriteLine("No release link for reservoir " + res.name + " defined. Cost not added. ");
 
                 //Set starting volume
                 DateTime dtime0 = myModel.TimeStepManager.Index2Date(0, TypeIndexes.ModelIndex);

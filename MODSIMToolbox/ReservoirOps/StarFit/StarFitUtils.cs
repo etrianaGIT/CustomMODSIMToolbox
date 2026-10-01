@@ -30,6 +30,15 @@ namespace MODSIMModeling.ReservoirOps.StarFit
             
         }
 
+        // Find STARFIT parameters using the MODSIM reservoir name,
+        // which corresponds to GRanD_ID
+        private DataRow[] GetReservoirParameters(Node res)
+        {
+            return _DtblParams.Select(
+                $"Convert([GRanD_ID], 'System.String') = '{res.name}'"
+            );
+        }
+
         private DataTable ReadCsv(string filePath)
         {
             string connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" +
@@ -57,13 +66,14 @@ namespace MODSIMModeling.ReservoirOps.StarFit
         /// <returns>The maximum normal value for the reservoir.</returns>
         public double GetMaxNormal(Node res, int weekNumber, long maxMCM)
         {
-            DataRow[] dr = _DtblParams.Select($"[GRanD_NAME] = '{res.name}'");
+            //DataRow[] dr = _DtblParams.Select($"[GRanD_NAME] = '{res.name}'");
+            DataRow[] dr = GetReservoirParameters(res);
             queryRes = res.name;
             double maxNormal = 1.0;
 
             if (dr.Length > 0)
             {
-                res.description = "ID:" + dr[0]["GRanD_ID"].ToString();
+                res.description = dr[0]["GRanD_NAME"].ToString();
                 double upper_max = GetParam(dr[0], "NORhi_max", double.MaxValue);
                 double upper_min = GetParam(dr[0], "NORhi_min", double.MinValue); //!dr[0]["NORhi_min"].ToString().Contains("Infinity") & !dr[0]["NORhi_min"].ToString().Contains("#NAME?") ? double.Parse(dr[0]["NORhi_min"].ToString()) : double.MinValue;
                 double upper_mu = GetParam(dr[0], "NORhi_mu", 0); //double.Parse(dr[0]["NORhi_mu"].ToString());
@@ -89,7 +99,8 @@ namespace MODSIMModeling.ReservoirOps.StarFit
 
         public double GetVarValue(Node res,string var, double defaultValue = 0)
         {
-            DataRow[] dr = _DtblParams.Select($"[GRanD_NAME] = '{res.name}'");
+            //DataRow[] dr = _DtblParams.Select($"[GRanD_NAME] = '{res.name}'");
+            DataRow[] dr = GetReservoirParameters(res);
             queryRes = res.name;
             if (dr.Length == 0)
             {
@@ -115,30 +126,30 @@ namespace MODSIMModeling.ReservoirOps.StarFit
         /// <returns></returns>
         private double GetParam(DataRow dr, string var, double defaultValue)
         {
-            if (dr[var].ToString() == "NA")
+            string valueStr = dr[var].ToString();
+            if (valueStr == "NA" || valueStr.Contains("Infinity") || valueStr == "" || valueStr.Contains("#NAME?"))
             {
                 if (!dataIssues.ContainsKey(queryRes))
                     dataIssues.Add(queryRes, true);
                 return -1;
             }
-            double value = defaultValue;
-            if (!dr[var].ToString().Contains("Infinity")
-                & dr[var].ToString() != ""
-                & !dr[var].ToString().Contains("#NAME?"))
-            {
-                value = double.Parse(dr[var].ToString());
-            }
-            else
+
+            double value;
+            if (!double.TryParse(valueStr, out value))
             {
                 if (!dataIssues.ContainsKey(queryRes))
                     dataIssues.Add(queryRes, true);
+                return defaultValue;
             }
-            return value;   
+
+            return value;
         }
+
 
         public double GetMinNormal(Node res, int weekNumber, long maxMCM)
         {
-            DataRow[] dr = _DtblParams.Select($"[GRanD_NAME] = '{res.name}'");
+            //DataRow[] dr = _DtblParams.Select($"[GRanD_NAME] = '{res.name}'");
+            DataRow[] dr = GetReservoirParameters(res);
             queryRes = res.name;
             double minNormal = 1.0;
             if (dr.Length > 0)

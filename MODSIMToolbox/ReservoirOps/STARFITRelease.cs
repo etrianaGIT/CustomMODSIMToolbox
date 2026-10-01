@@ -197,14 +197,14 @@ namespace MODSIMModeling.ReservoirOps
                 //Calculate a rolling inflow average
                 // res.Tag has the sum of simulated inflows. the Tag value is added at convergence of the current time step, so the value here
                 // doesn't have the current inflow. Need to use the inflow in MODSIM units.
-                inflow_mean = ((double)res.Tag + inflow) / (myModel.mInfo.CurrentModelTimeStepIndex + 1);
+                //inflow_mean = ((double)res.Tag + inflow) / (myModel.mInfo.CurrentModelTimeStepIndex + 1);
                 // convert mean inflow to m³/s
                 //  conversion factor has the MODSIM scalefactor included
                 inflow_mean = inflow_mean * flowMODSIMToCMS;//Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow_mean, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
             }
             // convert inflow to m³/s
             //  conversion factor has the MODSIM scalefactor included
-            inflow = inflow * flowMODSIMToCMS;// Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
+           inflow = inflow * flowMODSIMToCMS;// Convert.ToDouble(myModel.FlowUnits.ConvertTo(myModel.FlowUnits.ConvertFrom(inflow, myModel.FlowUnits), ModsimUnits.FromLabel("CMS")));
 
 
             //if (_MyStarFitUtils.IsDataIssues(res.name))
@@ -214,6 +214,7 @@ namespace MODSIMModeling.ReservoirOps
 
             // Calculate maxNormal and minNormal using sine and cosine functions
             long maxMCM = (long)Math.Round(res.m.max_volume*storageMODSIMToMCM,0);// Convert.ToInt64(myModel.StorageUnits.ConvertTo(myModel.StorageUnits.ConvertFrom(res.m.max_volume, res.m.reservoir_units), ModsimUnits.FromLabel("MCM")));
+            //long maxMCM = res.m.max_volume;
             double maxNormal = _MyStarFitUtils.GetMaxNormal(res, weekNumber,maxMCM);
             double maxNormalPerc = maxNormal / maxMCM * 100;
             double minNormal = _MyStarFitUtils.GetMinNormal(res, weekNumber, maxMCM);
